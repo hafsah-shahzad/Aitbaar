@@ -15,22 +15,23 @@ Built for the Alibaba Cloud AI Hackathon 2026 — Financial Inclusion Track.
 
 ## The Problem
 
-Roughly 100 million Pakistanis 41% of the population save through informal committees (*bisi/kameti*), moving an estimated **$5 billion annually**, entirely outside the formal banking system. Bank account ownership rose from 16% (2015) to 64% (2023), but only **43% of women** hold a formal account, and existing digital finance apps assume smartphone literacy, English, and comfort typing excluding exactly the people who rely on committees most.
+Roughly 100 million Pakistanis 41% of the population save through informal committees (*bisi/kameti*), moving an estimated **$5 billion annually**, entirely outside the formal banking system. Bank account ownership rose from 16% (2015) to 64% (2023), but only **43% of
+women** hold a formal account, and existing digital finance apps assume smartphone literacy, English, and comfort typing excluding exactly the people who rely on committees most.
 
 This creates six recurring, real problems:
 
 | # | Problem | Description |
 |---|---------|-------------|
-| 1 | **Organizer Fraud** | An organizer collects cash but disappears, or under-reports what was paid — with no record to prove otherwise. |
+| 1 | **Organizer Fraud** | An organizer collects cash but disappears, or under-reports what was paid with no record to prove otherwise. |
 | 2 | **No Digital Records** | Everything is tracked on paper or from memory. One lost notebook erases months of payment history. |
 | 3 | **Payout Disputes** | Members argue over payout order with no fair, transparent process to settle it. |
-| 4 | **Digital Exclusion** | Existing finance apps require an app download and literacy — excluding low-literacy and non-smartphone users. |
+| 4 | **Digital Exclusion** | Existing finance apps require an app download and literacy excluding low-literacy and non-smartphone users. |
 | 5 | **Impersonation Scams** | Fraudsters pose as the organizer and ask members to send money to a "new" account number. |
 | 6 | **Invisible Credit History** | Years of reliable payments never translate into a credit record a bank would recognize. |
 
 ## The Solution
 
-Aitbaar digitizes trust in committees **without changing how people already save**. A member sends a WhatsApp voice note or text — in Urdu, Roman Urdu, or English — reporting a payment. The AI understands the request and logs it; a human organizer verifies every claim before it's confirmed, so the AI assists rather than decides alone. Verified payment behavior updates a transparent, ongoing Trust Score for every member.
+Aitbaar digitizes trust in committees **without changing how people already save**. A member sends a WhatsApp voice note or text in Urdu, Roman Urdu, or English reporting a payment. The AI understands the request and logs it; a human organizer verifies every claim before it's confirmed, so the AI assists rather than decides alone. Verified payment behavior updates a transparent, ongoing Trust Score for every member.
 
 ---
 
