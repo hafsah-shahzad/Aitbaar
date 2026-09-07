@@ -1,0 +1,74 @@
+
+@reference "tailwindcss";
+.hiw-page {
+  @apply min-h-screen bg-[#F7F6F2] text-[#22262E];
+  font-family: 'Inter', sans-serif;
+}
+
+.hiw-nav {
+  @apply max-w-4xl mx-auto flex items-center justify-between px-6 py-5;
+}
+
+.hiw-back-link {
+  @apply text-sm text-[#5C6270] hover:text-[#1E3A5F] flex items-center gap-1;
+}
+
+.hiw-header {
+  @apply max-w-2xl mx-auto px-6 pt-6 pb-14 text-center;
+}
+
+.hiw-title {
+  @apply text-3xl sm:text-4xl font-semibold mb-4 leading-tight;
+}
+
+.hiw-subtitle {
+  @apply text-base sm:text-lg text-[#5C6270] max-w-xl mx-auto leading-relaxed;
+}
+
+.hiw-tabs {
+  @apply max-w-md mx-auto flex gap-2 px-6 mb-12;
+}
+
+.hiw-tab {
+  @apply flex-1 px-4 py-2.5 rounded-lg text-sm font-medium text-center transition cursor-pointer;
+}
+
+.hiw-tab-active {
+  @apply bg-[#1E3A5F] text-white;
+}
+
+.hiw-tab-inactive {
+  @apply bg-white text-[#5C6270] border border-[#22262E]/10 hover:bg-[#F0EFEA];
+}
+
+.hiw-steps {
+  @apply max-w-2xl mx-auto px-6 pb-20 space-y-6;
+}
+
+.hiw-step {
+  @apply flex gap-5 bg-white rounded-xl border border-[#22262E]/8 p-5;
+}
+
+.hiw-step-number {
+  @apply w-9 h-9 shrink-0 rounded-full bg-[#E8EEF4] text-[#1E3A5F] flex items-center justify-center font-semibold text-sm;
+}
+
+.hiw-step-title {
+  @apply font-medium mb-1;
+}
+
+.hiw-step-desc {
+  @apply text-sm text-[#5C6270] leading-relaxed;
+}
+
+.hiw-example {
+  @apply mt-3 inline-block text-xs bg-[#FBF0DE] text-[#B8792B] px-3 py-1.5 rounded-lg;
+}
+
+.hiw-cta {
+  @apply max-w-2xl mx-auto px-6 pb-24 text-center;
+}
+
+.btn-primary-lg {
+  @apply inline-block px-6 py-3 rounded-lg bg-[#1E3A5F] text-white font-medium hover:bg-[#2E5384] transition;
+}

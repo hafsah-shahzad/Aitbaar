@@ -1,0 +1,43 @@
+/* Login.css */
+
+@reference "tailwindcss";
+.login-page {
+  @apply min-h-screen bg-[#F7F6F2] flex items-center justify-center px-6;
+  font-family: 'Inter', sans-serif;
+}
+
+.login-box {
+  @apply bg-white rounded-2xl w-full max-w-sm p-7 border border-[#22262E]/8;
+}
+
+.login-logo {
+  @apply text-2xl font-semibold text-[#1E3A5F] text-center mb-1;
+}
+
+.login-subtitle {
+  @apply text-sm text-[#5C6270] text-center mb-6;
+}
+
+.login-input {
+  @apply w-full px-3 py-2.5 rounded-lg border border-[#22262E]/15 text-sm focus:outline-none focus:border-[#1E3A5F];
+}
+
+.login-form {
+  @apply space-y-3;
+}
+
+.login-error {
+  @apply text-xs text-red-600 pt-1;
+}
+
+.login-submit {
+  @apply w-full mt-3 px-6 py-3 rounded-lg bg-[#1E3A5F] text-white font-medium hover:bg-[#2E5384] transition disabled:opacity-60;
+}
+
+.login-footer-text {
+  @apply text-xs text-[#5C6270] text-center mt-5;
+}
+
+.login-footer-link {
+  @apply text-[#1E3A5F] font-medium hover:underline;
+}

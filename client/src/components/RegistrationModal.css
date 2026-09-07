@@ -1,0 +1,362 @@
+
+@reference "tailwindcss";
+/* RegistrationModal.css */
+
+.modal-overlay {
+  @apply fixed inset-0 bg-[#22262E]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4;
+}
+
+.modal-box {
+  @apply bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6 relative;
+}
+
+.modal-close {
+  @apply absolute top-4 right-4 text-[#5C6270] hover:text-[#22262E] text-xl leading-none;
+}
+
+.modal-title {
+  @apply text-xl font-semibold mb-1;
+}
+
+.modal-subtitle {
+  @apply text-sm text-[#5C6270] mb-5;
+}
+
+.form-body {
+  @apply space-y-3;
+}
+
+.form-section-label {
+  @apply text-xs font-medium text-[#B8792B] uppercase tracking-wide pt-1;
+}
+
+.form-input {
+  @apply w-full px-3 py-2.5 rounded-lg border border-[#22262E]/15 text-sm focus:outline-none focus:border-[#1E3A5F];
+}
+
+.form-row {
+  @apply grid grid-cols-2 gap-3;
+}
+
+.form-error {
+  @apply text-xs text-red-600 pt-1;
+}
+
+.form-submit {
+  @apply w-full mt-4 px-6 py-3 rounded-lg bg-[#1E3A5F] text-white font-medium hover:bg-[#2E5384] transition disabled:opacity-60;
+}
+
+/* Success state */
+.success-box {
+  @apply text-center py-6;
+}
+
+.success-icon {
+  @apply w-14 h-14 mx-auto mb-4 rounded-full bg-[#E8EEF4] text-[#1E3A5F] flex items-center justify-center text-2xl;
+}
+
+.success-title {
+  @apply text-xl font-semibold mb-2;
+}
+
+.success-subtitle {
+  @apply text-sm text-[#5C6270] mb-5;
+}
+
+.success-code {
+  @apply bg-[#FBF0DE] text-[#B8792B] text-2xl font-semibold rounded-xl py-4 mb-5 tracking-wide;
+}
+
+.success-note {
+  @apply text-xs text-[#5C6270];
+}
+
+.success-done-btn {
+  @apply w-full mt-5 px-6 py-3 rounded-lg border border-[#22262E]/15 font-medium hover:bg-[#F7F6F2] transition;
+}
+
+/* Hide the up/down spinner arrows on number inputs */
+.form-input[type="number"]::-webkit-inner-spin-button,
+.form-input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* .form-input[type="number"] {
+  -moz-appearance: textfield;
+} */
+
+/* ── Rules Checkbox ── */
+.rules-checkbox-row {
+  @apply flex items-center gap-2.5 pt-2 cursor-pointer;
+}
+
+.rules-checkbox {
+  @apply flex items-center gap-2.5 pt-2 cursor-pointer;
+}
+
+.rules-checkbox input[type="checkbox"] {
+  @apply w-4 h-4 accent-[#1E3A5F] cursor-pointer;
+}
+
+.rules-hint {
+  @apply text-xs text-[#1E3A5F] italic mt-1;
+}
+
+.rules-checkbox-label {
+  @apply text-sm text-[#22262E] font-medium;
+}
+
+.rules-preview-hint {
+  @apply flex items-start gap-2 bg-[#F0F7FF] rounded-lg px-3 py-2.5 text-xs text-[#1E3A5F];
+}
+
+.rules-hint-icon {
+  @apply text-sm mt-px;
+}
+
+/* ── Rules Loading ── */
+.rules-loading {
+  @apply flex items-center justify-center gap-2 py-4 text-sm text-[#5C6270];
+}
+
+.rules-spinner {
+  @apply w-4 h-4 border-2 border-[#B8792B] border-t-transparent rounded-full animate-spin;
+}
+
+/* ── Rules Section (success page) ── */
+.rules-section {
+  @apply text-left mt-5 pt-5 border-t border-[#22262E]/10;
+}
+
+.rules-section-title {
+  @apply text-sm font-semibold text-[#1E3A5F] mb-3;
+}
+
+.rules-card {
+  @apply flex items-start gap-2.5 bg-[#F7F6F2] rounded-lg px-3 py-2.5 mb-2;
+}
+
+.rules-card-icon {
+  @apply text-base mt-0.5 shrink-0;
+}
+
+.rules-card-body {
+  @apply flex-1 min-w-0;
+}
+
+.rules-card-title {
+  @apply text-xs font-semibold text-[#1E3A5F] mb-0.5;
+}
+
+.rules-card-text {
+  @apply text-[11px] text-[#5C6270] leading-relaxed;
+}
+
+.rules-expand-btn {
+  @apply w-full text-xs text-[#B8792B] font-medium py-2 hover:text-[#1E3A5F] transition;
+}
+
+/* ── Rules Tabs ── */
+.rules-tabs {
+  @apply flex gap-2 mb-3;
+}
+
+.rules-tab {
+  @apply text-xs px-3 py-1.5 rounded-full bg-[#22262E]/15 text-[#5C6270] font-medium transition;
+}
+
+.rules-tab.active {
+  @apply bg-[#1E3A5F] text-white;
+}
+
+.rules-heading {
+  @apply text-sm font-semibold text-[#1E3A5F] mb-3;
+}
+
+.rules-heading-urdu {
+  @apply text-right;
+  direction: rtl;
+}
+
+.rules-cards {
+  @apply space-y-2;
+}
+
+.rule-card {
+  @apply bg-[#F7F6F2] rounded-lg px-3 py-2.5;
+}
+
+.rule-card-header {
+  @apply flex items-center gap-2 mb-1;
+}
+
+.rule-icon {
+  @apply text-sm;
+}
+
+.rule-title {
+  @apply text-xs font-semibold text-[#1E3A5F];
+}
+
+.rule-text {
+  @apply text-[11px] text-[#5C6270] leading-relaxed;
+}
+
+.rule-text-urdu {
+  direction: rtl;
+  text-align: right;
+}
+
+.rules-toggle {
+  @apply w-full text-xs text-[#B8792B] font-medium py-2 hover:text-[#1E3A5F] transition;
+}
+
+.rule-card-urdu {
+  @apply bg-[#F7F6F2] rounded-lg px-3 py-2.5;
+  direction: rtl;
+  text-align: right;
+}
+
+/* ── Urdu Rules ── */
+.rules-urdu-section {
+  @apply mt-4 pt-4 border-t border-[#22262E]/10;
+}
+
+.rules-urdu-title {
+  @apply text-sm font-semibold text-[#1E3A5F] mb-3 text-right;
+  direction: rtl;
+}
+
+.rules-card-urdu {
+  direction: rtl;
+  text-align: right;
+}
+
+.rules-card-body-urdu {
+  direction: rtl;
+}
+
+/* ── Rules Action Buttons ── */
+.rules-actions {
+  @apply flex gap-2 mt-4;
+}
+
+.rules-action-btn {
+  @apply flex-1 px-3 py-2.5 rounded-lg text-xs font-medium transition;
+}
+
+.rules-action-pdf {
+  @apply bg-[#1E3A5F] text-white hover:bg-[#2E5384];
+}
+
+.rules-action-wa {
+  @apply bg-[#25D366] text-white hover:bg-[#1EBE5A];
+}
+
+.rules-btn {
+  @apply flex-1 px-3 py-2.5 rounded-lg text-xs font-medium transition;
+}
+
+.rules-btn-pdf {
+  @apply bg-[#1E3A5F] text-white hover:bg-[#2E5384];
+}
+
+.rules-btn-whatsapp {
+  @apply bg-[#25D366] text-white hover:bg-[#1EBE5A];
+}
+
+/* ── Terms & Policy Agreement ── */
+.terms-agreement-section {
+  @apply mt-5 pt-5;
+}
+
+.terms-divider {
+  @apply w-full h-px bg-[#22262E]/10 mb-4;
+}
+
+.terms-heading {
+  @apply text-sm font-bold text-[#1E3A5F] mb-2;
+}
+
+.terms-description {
+  @apply text-xs text-[#5C6270] leading-relaxed mb-3;
+}
+
+.terms-read-btn {
+  @apply w-full px-4 py-2.5 rounded-lg bg-[#FBF0DE] text-[#B8792B] text-xs font-semibold hover:bg-[#F5E6C8] transition mb-3;
+}
+
+.terms-checklist {
+  @apply space-y-2 mb-2;
+}
+
+.terms-checkbox {
+  @apply flex items-start gap-2.5 p-3 rounded-lg bg-[#F0F7FF] cursor-pointer;
+}
+
+.terms-checkbox input[type="checkbox"] {
+  @apply w-4 h-4 mt-0.5 accent-[#1E3A5F] cursor-pointer shrink-0;
+}
+
+.terms-checkbox-text {
+  @apply text-[11px] text-[#22262E] leading-relaxed;
+}
+
+.terms-checkbox-text strong {
+  @apply text-[#1E3A5F];
+}
+
+.success-done-btn:disabled {
+  @apply opacity-50 cursor-not-allowed bg-[#F7F6F2] text-[#5C6270];
+}
+
+/* ── Terms Preview (on form) ── */
+.terms-preview-section {
+  @apply bg-[#F7F6F2] rounded-lg p-3 mt-1;
+}
+
+.terms-preview-header {
+  @apply flex items-center gap-2 mb-2;
+}
+
+.terms-preview-icon {
+  @apply text-sm;
+}
+
+.terms-preview-title {
+  @apply text-xs font-bold text-[#1E3A5F];
+}
+
+.terms-preview-desc {
+  @apply text-[11px] text-[#5C6270] mb-2;
+}
+
+.terms-preview-list {
+  @apply space-y-1.5 mb-3;
+}
+
+.terms-preview-item {
+  @apply flex items-start gap-2 text-[11px] text-[#22262E];
+}
+
+.terms-check {
+  @apply text-[#1E3A5F] font-bold shrink-0;
+}
+
+.terms-checkbox-form {
+  @apply bg-white border border-[#22262E]/10;
+}
+
+/* ── Language Toggle ── */
+.lang-toggle {
+  @apply flex gap-1 ml-auto;
+}
+
+.lang-btn {
+  @apply text-[10px] px-2 py-1 rounded-md bg-[#22262E]/10 text-[#5C6270] font-medium transition;
+}
+
+.lang-btn.active {
+  @apply bg-[#1E3A5F] text-white;
+}

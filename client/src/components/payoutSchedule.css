@@ -1,0 +1,122 @@
+.payout-card {
+  @apply bg-white rounded-xl border border-[#22262E]/8 overflow-hidden mb-5;
+}
+
+.payout-header {
+  @apply flex items-center justify-between px-5 py-4 border-b border-[#22262E]/8;
+}
+
+.payout-title {
+  @apply text-sm font-medium flex items-center gap-2;
+}
+
+.payout-locked-badge {
+  @apply text-xs bg-[#E8EEF4] text-[#1E3A5F] px-2 py-0.5 rounded-full font-medium;
+}
+
+.payout-manual-badge {
+  @apply text-xs bg-[#FBF0DE] text-[#B8792B] px-2 py-0.5 rounded-full font-medium;
+}
+
+/* Choice screen */
+.payout-choice-grid {
+  @apply grid sm:grid-cols-2 gap-4 p-5;
+}
+
+.payout-choice-btn {
+  @apply p-5 rounded-xl border-2 text-left transition-all cursor-pointer hover:-translate-y-0.5 hover:shadow-md;
+}
+
+.payout-choice-btn-auto {
+  @apply border-[#1E3A5F] bg-[#F7F9FC];
+}
+
+.payout-choice-btn-manual {
+  @apply border-[#B8792B] bg-[#FDFAF5];
+}
+
+.payout-choice-icon {
+  @apply text-3xl mb-3 block;
+}
+
+.payout-choice-title {
+  @apply font-semibold text-sm mb-1;
+}
+
+.payout-choice-desc {
+  @apply text-xs text-[#5C6270] leading-relaxed;
+}
+
+/* Schedule table */
+.payout-table {
+  @apply w-full text-sm;
+}
+
+.payout-table th {
+  @apply text-left text-xs text-[#5C6270] font-normal px-5 py-3 border-b border-[#22262E]/8;
+}
+
+.payout-table td {
+  @apply px-5 py-3 border-b border-[#22262E]/5;
+}
+
+.payout-table tr:last-child td {
+  @apply border-0;
+}
+
+.payout-order-badge {
+  @apply w-7 h-7 rounded-full bg-[#1E3A5F] text-white text-xs font-bold flex items-center justify-center;
+}
+
+.payout-order-input {
+  @apply w-16 px-2 py-1 rounded-lg border border-[#22262E]/15 text-sm text-center focus:outline-none focus:border-[#1E3A5F];
+}
+
+.payout-save-btn {
+  @apply px-4 py-2 rounded-lg bg-[#1E3A5F] text-white text-sm font-medium hover:bg-[#2E5384] transition;
+}
+
+.payout-reset-btn {
+  @apply px-4 py-2 rounded-lg border border-[#22262E]/15 text-sm font-medium hover:bg-[#F7F6F2] transition;
+}
+
+/* Instruction popup overlay */
+.payout-overlay {
+  @apply fixed inset-0 bg-[#22262E]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4;
+}
+
+.payout-popup {
+  @apply bg-white rounded-2xl w-full max-w-md p-6 relative;
+}
+
+.payout-popup-close {
+  @apply absolute top-4 right-4 text-[#5C6270] hover:text-[#22262E] text-xl leading-none cursor-pointer;
+}
+
+.payout-popup-icon {
+  @apply text-4xl mb-3 block text-center;
+}
+
+.payout-popup-title {
+  @apply text-lg font-semibold text-center text-[#1E3A5F] mb-1;
+}
+
+.payout-popup-subtitle {
+  @apply text-sm text-[#5C6270] text-center mb-5;
+}
+
+.payout-instruction-list {
+  @apply space-y-3 mb-6;
+}
+
+.payout-instruction-item {
+  @apply flex items-start gap-3 text-sm text-[#5C6270];
+}
+
+.payout-instruction-dot {
+  @apply w-5 h-5 rounded-full bg-[#E8EEF4] text-[#1E3A5F] text-xs font-bold flex items-center justify-center shrink-0 mt-0.5;
+}
+
+.payout-popup-proceed-btn {
+  @apply w-full py-3 rounded-lg bg-[#B8792B] text-white font-medium hover:bg-[#9A6320] transition;
+}

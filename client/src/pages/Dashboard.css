@@ -1,0 +1,244 @@
+/* Dashboard.css - Full screen, responsive, mobile-first */
+@reference "tailwindcss";
+.dash-page {
+  @apply min-h-screen bg-[#F7F6F2] text-[#22262E] flex;
+  font-family: 'Inter', sans-serif;
+}
+
+/* ── SIDEBAR ───────────────────────────────────── */
+
+.dash-sidebar {
+  @apply bg-[#16283F] text-white flex flex-col justify-between py-6 px-4 shrink-0;
+  width: 220px;
+  min-height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 50;
+  transition: transform 0.25s ease;
+}
+
+.dash-sidebar-mobile-hidden {
+  transform: translateX(-100%);
+}
+
+.dash-logo {
+  @apply text-xl font-semibold px-2 mb-8 text-white;
+  font-family: 'Fraunces', serif;
+}
+
+.dash-nav {
+  @apply space-y-1;
+}
+
+.dash-nav-item {
+  @apply w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/60 hover:bg-white/10 hover:text-white transition-colors cursor-pointer;
+}
+
+.dash-nav-item-active {
+  @apply w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm bg-white/15 text-white font-medium cursor-pointer;
+}
+
+.dash-logout {
+  @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/60 hover:bg-white/10 hover:text-white transition-colors cursor-pointer;
+}
+
+/* ── MAIN CONTENT ──────────────────────────────── */
+
+.dash-main {
+  @apply flex-1 p-6 overflow-y-auto;
+  margin-left: 220px;
+  min-height: 100vh;
+  width: calc(100% - 220px);
+}
+
+/* Mobile: full width when sidebar is hidden */
+@media (max-width: 768px) {
+  .dash-sidebar {
+    transform: translateX(-100%);
+  }
+  .dash-sidebar.open {
+    transform: translateX(0);
+  }
+  .dash-main {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+.dash-topbar {
+  @apply flex items-center justify-between mb-6 flex-wrap gap-3;
+}
+
+.dash-greeting {
+  @apply text-xl font-semibold;
+}
+
+.dash-greeting-sub {
+  @apply text-xs text-[#5C6270] mt-0.5;
+}
+
+.dash-hamburger {
+  @apply md:hidden p-2 rounded-lg bg-white border border-[#22262E]/10 text-[#22262E] cursor-pointer;
+}
+
+/* ── COMMITTEE SWITCHER ────────────────────────── */
+
+.dash-committee-switcher {
+  @apply flex items-center gap-2;
+}
+
+.dash-committee-badge {
+  @apply text-xs bg-[#E8EEF4] text-[#1E3A5F] px-3 py-1.5 rounded-full font-medium;
+}
+
+.dash-switcher-btn {
+  @apply w-7 h-7 rounded-full border border-[#22262E]/10 flex items-center justify-center text-[#5C6270] hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer;
+}
+
+.dash-switcher-count {
+  @apply text-xs text-[#5C6270];
+}
+
+.dash-add-committee-btn {
+  @apply flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1E3A5F] text-white text-xs font-medium hover:bg-[#2E5384] transition cursor-pointer;
+}
+
+/* ── KPI CARDS ─────────────────────────────────── */
+
+.dash-kpi-grid {
+  @apply grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5;
+}
+
+.dash-kpi-card {
+  @apply bg-white rounded-xl border border-[#22262E]/8 p-4;
+}
+
+.dash-kpi-label {
+  @apply text-xs text-[#5C6270] mb-1;
+}
+
+.dash-kpi-value {
+  @apply text-xl font-semibold;
+}
+
+/* ── CHARTS ────────────────────────────────────── */
+
+.dash-chart-grid {
+  @apply grid md:grid-cols-2 gap-4 mb-5;
+}
+
+.dash-card {
+  @apply bg-white rounded-xl border border-[#22262E]/8 p-5;
+}
+
+.dash-card-title {
+  @apply text-sm font-medium mb-4;
+}
+
+.dash-legend {
+  @apply flex flex-wrap gap-3 mt-2 justify-center;
+}
+
+.dash-legend-item {
+  @apply flex items-center gap-1.5 text-xs text-[#5C6270];
+}
+
+.dash-legend-dot {
+  @apply w-2 h-2 rounded-full;
+}
+
+/* ── ANOMALY ───────────────────────────────────── */
+
+.dash-anomaly {
+  @apply bg-[#FBF0DE] border border-[#B8792B]/25 rounded-xl p-4 flex items-center gap-3 mb-4;
+}
+
+.dash-anomaly-text {
+  @apply text-sm text-[#5A3A0E];
+}
+
+/* ── BOTTOM GRID ───────────────────────────────── */
+
+.dash-bottom-grid {
+  @apply grid md:grid-cols-3 gap-4;
+}
+
+.dash-activity-card {
+  @apply bg-white rounded-xl border border-[#22262E]/8 p-5;
+}
+
+.dash-activity-item {
+  @apply flex items-start gap-3 py-2.5 border-b border-[#22262E]/5 last:border-0;
+}
+
+.dash-activity-avatar {
+  @apply w-8 h-8 rounded-full bg-[#E8EEF4] text-[#1E3A5F] flex items-center justify-center text-xs font-medium shrink-0;
+}
+
+.dash-activity-text {
+  @apply text-sm;
+}
+
+.dash-activity-time {
+  @apply text-xs text-[#5C6270];
+}
+
+/* ── MEMBERS TABLE ─────────────────────────────── */
+
+.dash-table-card {
+  @apply bg-white rounded-xl border border-[#22262E]/8 overflow-hidden md:col-span-2;
+}
+
+.dash-table-title {
+  @apply text-sm font-medium px-5 py-4 border-b border-[#22262E]/8;
+}
+
+.dash-table {
+  @apply w-full text-sm;
+}
+
+.dash-table th {
+  @apply text-left text-xs text-[#5C6270] font-normal px-4 py-3 border-b border-[#22262E]/8;
+}
+
+.dash-table td {
+  @apply px-4 py-3 border-b border-[#22262E]/5;
+}
+
+.dash-table tr:last-child td {
+  @apply border-0;
+}
+
+.dash-score-badge {
+  @apply px-2 py-0.5 rounded-full text-xs inline-block;
+}
+
+/* ── PENDING PAYMENTS ──────────────────────────── */
+
+.dash-pending-card {
+  @apply bg-white rounded-xl border border-[#B8792B]/20 overflow-hidden mb-4;
+}
+
+.dash-pending-title {
+  @apply text-sm font-medium px-5 py-4 border-b border-[#22262E]/8 flex items-center gap-2;
+}
+
+.dash-pending-badge {
+  @apply bg-[#FBF0DE] text-[#B8792B] text-xs px-2 py-0.5 rounded-full;
+}
+
+.dash-confirm-btn {
+  @apply px-3 py-1 rounded-lg bg-[#1E3A5F] text-white text-xs hover:bg-[#2E5384] transition cursor-pointer;
+}
+
+.dash-reject-btn {
+  @apply px-3 py-1 rounded-lg border border-[#DC2626]/30 text-[#DC2626] text-xs hover:bg-red-50 transition cursor-pointer;
+}
+
+/* ── OVERLAY (mobile sidebar) ──────────────────── */
+
+.dash-overlay {
+  @apply fixed inset-0 bg-black/40 z-40 md:hidden;
+}
