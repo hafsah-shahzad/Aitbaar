@@ -105,9 +105,10 @@ Aitbaar digitizes trust in committees **without changing how people already save
 │   ├── mediaService.js
 │   ├── speechToTextService.js
 │   └── textToSpeechService.js
-└── jobs/
-    ├── weeklyAnomalyCheckJob.js
-    └── monthlyReminderJob.js
+└── payment/
+    ├── weeklyAnomalyCheck.js
+    └── monthlyPaymentReminder.js
+    └── monthlyPaymentPrediction.js
 ```
 
 ---
