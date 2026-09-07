@@ -120,38 +120,7 @@ Key tables: `members`, `committees`, `organizers`, `payment_records`, `trust_sco
 
 ---
 
-## Setup & Installation
 
-**Prerequisites:** Node.js, a Supabase project, a WhatsApp Business API account, and an Alibaba Cloud Model Studio API key.
-
-```bash
-# Clone and install
-npm install
-
-# Configure environment variables (see below)
-cp .env.example .env
-
-# Run the backend
-node server.js
-```
-
-**Environment variables:**
-
-```
-DASHSCOPE_API_KEY=            # Alibaba Cloud Model Studio API key
-DASHSCOPE_BASE_URL=
-
-SUPABASE_URL=
-SUPABASE_SERVICE_ROLE_KEY=
-
-WHATSAPP_PHONE_NUMBER_ID=
-WHATSAPP_ACCESS_TOKEN=
-WHATSAPP_VERIFY_TOKEN=
-
-PORT=5000
-```
-
----
 
 ## Currently Refining
 
