@@ -7,7 +7,7 @@ const supabase = require("../config/supabaseClient");
 const { predictPaymentRisks } = require("../services/predictionService");
 const { sendWhatsAppMessage } = require("../services/whatsappService");
 
-function startMonthlyPredictionJob() {
+function monthlyPaymentPredictionJob() {
   cron.schedule("0 8 1 * *", async () => {
     console.log("Running monthly payment prediction job...");
 
@@ -57,13 +57,13 @@ function startMonthlyPredictionJob() {
         }
       }
 
-      console.log("Monthly prediction job complete.");
+      console.log("Monthly payment prediction job complete.");
     } catch (err) {
-      console.error("Monthly prediction job failed:", err.message);
+      console.error("Monthly payment prediction job failed:", err.message);
     }
   });
 
-  console.log("Monthly prediction job scheduled (1st of every month, 8:00 AM)");
+  console.log("Monthly payment prediction job scheduled (1st of every month, 8:00 AM)");
 }
 
-module.exports = { startMonthlyPredictionJob };
+module.exports = { monthlyPaymentPredictionJob };
