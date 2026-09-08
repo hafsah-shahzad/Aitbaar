@@ -57,13 +57,13 @@ function monthlyPaymentPrediction() {
         }
       }
 
-      console.log("Monthly payment prediction job complete.");
+      console.log("Monthly payment prediction complete.");
     } catch (err) {
-      console.error("Monthly payment prediction job failed:", err.message);
+      console.error("Monthly payment prediction failed:", err.message);
     }
   });
 
-  console.log("Monthly payment prediction job scheduled (1st of every month, 8:00 AM)");
+  console.log("Monthly payment prediction scheduled (1st of every month, 8:00 AM)");
 }
 
 module.exports = { monthlyPaymentPrediction };
