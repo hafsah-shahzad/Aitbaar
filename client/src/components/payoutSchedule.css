@@ -1,3 +1,4 @@
+@reference "tailwindcss";
 .payout-card {
   @apply bg-white rounded-xl border border-[#22262E]/8 overflow-hidden mb-5;
 }

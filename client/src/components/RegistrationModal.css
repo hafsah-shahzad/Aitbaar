@@ -5,15 +5,39 @@
 .modal-overlay {
   @apply fixed inset-0 bg-[#22262E]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4;
 }
+.form-date-label {
+  @apply block text-xs text-[#5C6270] mb-1 font-medium;
+}
 
 .modal-box {
-  @apply bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6 relative;
+  @apply bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden p-0 relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .modal-close {
-  @apply absolute top-4 right-4 text-[#5C6270] hover:text-[#22262E] text-xl leading-none;
+  @apply absolute top-4 right-4 text-[#5C6270] hover:text-[#22262E] text-xl leading-none z-10;
 }
 
+/* ── Two-column layout ── */
+.modal-two-col {
+  display: flex;
+  min-height: 600px;
+  max-height: 85vh;
+}
+.modal-form-side {
+  flex: 1;
+  padding: 28px 28px 24px;
+  overflow-y: auto;
+  border-right: 1px solid #E8ECF0;
+}
+.modal-policies-side {
+  width: 380px;
+  display: flex;
+  flex-direction: column;
+  background: #F7F6F2;
+  border-radius: 0 16px 16px 0;
+}
 .modal-title {
   @apply text-xl font-semibold mb-1;
 }
@@ -46,9 +70,77 @@
   @apply w-full mt-4 px-6 py-3 rounded-lg bg-[#1E3A5F] text-white font-medium hover:bg-[#2E5384] transition disabled:opacity-60;
 }
 
+/* ── Policies sidebar ── */
+.policies-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 20px 12px;
+  flex-shrink: 0;
+}
+.policies-icon {
+  font-size: 14px;
+}
+.policies-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1E3A5F;
+}
+.policies-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 20px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.policies-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 20px;
+  background: white;
+  border-top: 1px solid #E8ECF0;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.policies-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  accent-color: #1E3A5F;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.policies-checkbox-text {
+  font-size: 11px;
+  color: #22262E;
+  line-height: 1.5;
+}
+
+/* ── Responsive: stack on mobile ── */
+@media (max-width: 768px) {
+  .modal-two-col {
+    flex-direction: column;
+    max-height: 90vh;
+  }
+  .modal-form-side {
+    border-right: none;
+    border-bottom: 1px solid #E8ECF0;
+  }
+  .modal-policies-side {
+    width: 100%;
+    max-height: 300px;
+    border-radius: 0 0 16px 16px;
+  }
+}
+
 /* Success state */
 .success-box {
   @apply text-center py-6;
+  overflow-y: auto;
+  max-height: 85vh;
+  padding: 1.5rem 1.5rem 1rem;
 }
 
 .success-icon {
@@ -73,6 +165,10 @@
 
 .success-done-btn {
   @apply w-full mt-5 px-6 py-3 rounded-lg border border-[#22262E]/15 font-medium hover:bg-[#F7F6F2] transition;
+    position: sticky;
+  bottom: 0;
+  background: white;
+  z-index: 2;
 }
 
 /* Hide the up/down spinner arrows on number inputs */
@@ -127,6 +223,8 @@
 /* ── Rules Section (success page) ── */
 .rules-section {
   @apply text-left mt-5 pt-5 border-t border-[#22262E]/10;
+   max-height: 40vh;
+  overflow-y: auto;
 }
 
 .rules-section-title {

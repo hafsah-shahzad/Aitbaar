@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { registerOrganizer, createCommittee } from "../api/Committeeapi.js";
+import { registerOrganizer, createCommittee } from "../api/Committeeapi";
 import "./RegistrationModal.css";
 
 const API_BASE = "http://localhost:5000";
@@ -87,11 +87,6 @@ export default function RegistrationModal({ isOpen, onClose }) {
     setCommitteeCode(null); setCommitteeId(null); setError(""); setTermsAccepted(false); setPoliciesLang("en"); onClose();
   }
 
-  function renderPolicies(list) {
-    return list.map(function(p) {
-      return <div key={p.id} className="terms-preview-item"><span className="terms-check">{p.id}.</span> <span><strong>{p.title}</strong> — {p.text}</span></div>;
-    });
-  }
 
   function renderRulesCards(list) {
     return list.map(function(p) {
@@ -107,44 +102,54 @@ export default function RegistrationModal({ isOpen, onClose }) {
     <div className="modal-overlay"><div className="modal-box">
       <button onClick={handleClose} className="modal-close">&times;</button>
       {!committeeCode ? (
-        <><h3 className="modal-title font-display">Create your committee</h3>
-        <p className="modal-subtitle">Fill in your details and your committee details.</p>
-        <form onSubmit={handleSubmit} className="form-body">
-          <p className="form-section-label">Your details</p>
-          <input required name="name" placeholder="Full name" className="form-input" value={formData.name} onChange={handleChange} />
-          <input required name="email" type="email" placeholder="Email address" className="form-input" value={formData.email} onChange={handleChange} />
-          <input required name="phone" placeholder="Phone number" className="form-input" value={formData.phone} onChange={handleChange} />
-          <input required name="password" type="password" placeholder="Create a password" className="form-input" value={formData.password} onChange={handleChange} />
-          <p className="form-section-label" style={{paddingTop:"0.75rem"}}>Committee details</p>
-          <input required name="committeeName" placeholder="Committee name" className="form-input" value={formData.committeeName} onChange={handleChange} />
-          <div className="form-row">
-            <input required name="monthlyAmount" type="number" placeholder="Monthly amount (Rs)" className="form-input" value={formData.monthlyAmount} onChange={handleChange} />
-            <input required name="totalMembers" type="number" placeholder="Total members" className="form-input" value={formData.totalMembers} onChange={handleChange} />
+             <div className="modal-two-col">
+          {/* ── LEFT: Form ── */}
+          <div className="modal-form-side">
+            <h3 className="modal-title font-display">Create your committee</h3>
+            <p className="modal-subtitle">Fill in your details and committee details.</p>
+            <form onSubmit={handleSubmit} className="form-body">
+              <p className="form-section-label">Your details</p>
+              <input required name="name" placeholder="Full name" className="form-input" value={formData.name} onChange={handleChange} />
+              <input required name="email" type="email" placeholder="Email address" className="form-input" value={formData.email} onChange={handleChange} />
+              <input required name="phone" placeholder="Phone number" className="form-input" value={formData.phone} onChange={handleChange} />
+              <input required name="password" type="password" placeholder="Create a password" className="form-input" value={formData.password} onChange={handleChange} />
+              <p className="form-section-label" style={{paddingTop:"0.75rem"}}>Committee details</p>
+              <input required name="committeeName" placeholder="Committee name" className="form-input" value={formData.committeeName} onChange={handleChange} />
+              <div className="form-row">
+                <input required name="monthlyAmount" type="number" placeholder="Monthly amount (Rs)" className="form-input" value={formData.monthlyAmount} onChange={handleChange} />
+                <input required name="totalMembers" type="number" placeholder="Total members" className="form-input" value={formData.totalMembers} onChange={handleChange} />
+              </div>
+              <div className="form-row">
+                <input required name="durationMonths" type="number" placeholder="Duration (months)" className="form-input" value={formData.durationMonths} onChange={handleChange} />
+                                <div>
+                  <label className="form-date-label">Starting date</label>
+                  <input required name="startDate" type="date" className="form-input" value={formData.startDate} onChange={handleChange} />
+                </div>
+              </div>
+              {error && <p className="form-error">{error}</p>}
+              <button type="submit" disabled={loading || !termsAccepted} className="form-submit">{loading ? "Creating..." : "Create committee"}</button>
+            </form>
           </div>
-          <div className="form-row">
-            <input required name="durationMonths" type="number" placeholder="Duration (months)" className="form-input" value={formData.durationMonths} onChange={handleChange} />
-            <input required name="startDate" type="date" className="form-input" value={formData.startDate} onChange={handleChange} />
-          </div>
-          <div className="terms-preview-section">
-            <div className="terms-preview-header">
-              <span className="terms-preview-icon">📋</span>
-              <span className="terms-preview-title">Aitbaar Committee Policies</span>
+        
+          {/* ── RIGHT: Policies ── */}
+          <div className="modal-policies-side">
+            <div className="policies-header">
+              <span className="policies-icon">{"\ud83d\udccb"}</span>
+              <span className="policies-title">Aitbaar Committee Policies</span>
               <div className="lang-toggle">
                 <button type="button" className={"lang-btn "+(policiesLang==="en"?"active":"")} onClick={function(){setPoliciesLang("en");}}>English</button>
                 <button type="button" className={"lang-btn "+(policiesLang==="ur"?"active":"")} onClick={function(){setPoliciesLang("ur");}}>{"\u0627\u0631\u062f\u0648"}</button>
               </div>
             </div>
-            <div className="terms-preview-list" style={policiesLang==="ur"?{direction:"rtl",textAlign:"right"}:{}}>
-              {renderPolicies(activePolicies, policiesLang==="ur")}
+                      <div className="policies-list" style={policiesLang==="ur"?{direction:"rtl",textAlign:"right"}:{}}>
+              {renderRulesCards(activePolicies)}
             </div>
-            <label className="terms-checkbox terms-checkbox-form">
+               <label className="policies-checkbox">
               <input type="checkbox" checked={termsAccepted} onChange={function(e){setTermsAccepted(e.target.checked);}} />
-              <span className="terms-checkbox-text">{checkboxLabel}</span>
+                    <span className="policies-checkbox-text">{checkboxLabel}</span>
             </label>
           </div>
-          {error && <p className="form-error">{error}</p>}
-          <button type="submit" disabled={loading || !termsAccepted} className="form-submit">{loading ? "Creating..." : "Create committee"}</button>
-        </form></>
+   </div>
       ) : (
         <div className="success-box">
           <div className="success-icon">&#10003;</div>
@@ -153,15 +158,15 @@ export default function RegistrationModal({ isOpen, onClose }) {
           <div className="success-code font-display">{committeeCode}</div>
           <p className="success-note">We have also emailed this code to you for safekeeping.</p>
           <div className="rules-section">
-            <div className="terms-preview-header">
-              <span className="terms-preview-icon">📋</span>
-              <span className="terms-preview-title">Aitbaar Committee Policies</span>
+               <div className="policies-header">
+              <span className="policies-icon">{"\ud83d\udccb"}</span>
+              <span className="policies-title">Aitbaar Committee Policies</span>
               <div className="lang-toggle">
                 <button className={"lang-btn "+(policiesLang==="en"?"active":"")} onClick={function(){setPoliciesLang("en");}}>English</button>
                 <button className={"lang-btn "+(policiesLang==="ur"?"active":"")} onClick={function(){setPoliciesLang("ur");}}>{"\u0627\u0631\u062f\u0648"}</button>
               </div>
             </div>
-            <div className="rules-cards" style={policiesLang==="ur"?{direction:"rtl",textAlign:"right"}:{}}>
+             <div className="policies-list" style={policiesLang==="ur"?{direction:"rtl",textAlign:"right"}:{}}>
               {renderRulesCards(activePolicies, policiesLang==="ur")}
             </div>
             <div className="rules-actions">

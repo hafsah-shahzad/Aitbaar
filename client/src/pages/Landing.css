@@ -1,4 +1,6 @@
 /* Landing.css */
+
+@reference "tailwindcss";
 @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter+Tight:wght@400;500;600;700&family=Noto+Nastaliq+Urdu:wght@400;600&display=swap");
 
 :root {
@@ -16,6 +18,8 @@
 .aitbaar h1, .aitbaar h2, .aitbaar h3 { font-family: "Playfair Display", Georgia, serif; letter-spacing: -0.02em; }
 .font-urdu { font-family: "Noto Nastaliq Urdu", serif; }
 
+
+/* ── Pill Buttons ─────────────────────────────────────── */
 .pill { display: inline-flex; align-items: center; justify-content: center; gap: .6rem; border-radius: 999px; padding: .85rem 1.4rem; font-size: .8125rem; font-weight: 600; letter-spacing: .02em; transition: all .2s ease; cursor: pointer; }
 .pill-navy { background: var(--navy); color: #fff; border: 1px solid var(--navy); }
 .pill-navy:hover { background: var(--ink); }
@@ -23,3 +27,152 @@
 .pill-outline:hover { background: var(--ink); color: #fff; }
 .card-soft { background: #fff; border: 1px solid var(--line); border-radius: 1.5rem; transition: box-shadow .25s ease; }
 .card-soft:hover { box-shadow: 0 20px 50px -30px rgba(30, 58, 95, .55); }
+
+/* ── How It Works — Horizontal Workflow ──────────────── */
+.how-workflow {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-top: 3rem;
+}
+
+.how-step-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1.5rem 2rem;
+  max-width: 280px;
+}
+
+.how-step-num-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+  font-weight: 800;
+  font-family: "Playfair Display", Georgia, serif;
+  margin: 0 auto 1rem auto;
+}
+
+.how-step-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.how-step-desc {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.how-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 60px;
+  padding-top: 1.5rem;
+}
+
+/* Mobile: stack vertically with down arrows */
+@media (max-width: 640px) {
+  .how-workflow {
+    flex-direction: column;
+    align-items: center;
+     gap: 1.25rem;
+  }
+  .how-step-card {
+    max-width: 100%;
+  }
+  .how-arrow {
+    width: auto;
+    padding-top: 0;
+    transform: rotate(90deg);
+    width: 60px;
+    height: 48px;
+  }
+   .trust-dark-card {
+    max-width: 100%;
+  }
+}
+
+
+/* ── FAQ Accordion ──────────────────────────────────── */
+.faq-item {
+  border-bottom: 1px solid var(--line);
+}
+.faq-question {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 1.25rem 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink);
+  font-family: inherit;
+}
+.faq-question:hover {
+  color: var(--navy);
+}
+.faq-chevron {
+  flex-shrink: 0;
+  color: var(--muted);
+  transition: transform 0.25s ease;
+}
+.faq-answer {
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.25s ease;
+  padding-bottom: 1.25rem;
+}
+.faq-answer p {
+  font-size: 0.875rem;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+/* ── Trust & Safety Cards — Clean & Spread Out ── */
+.trust-dark-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 2rem 2.5rem;
+  min-width: 0;
+  max-width: 340px;
+  background: var(--navy);
+  border-radius: 1rem;
+  transition: box-shadow 0.25s ease, transform 0.2s ease;
+}
+.trust-step-card:hover {
+ box-shadow: 0 8px 24px rgba(30, 58, 95, 0.3);
+  transform: translateY(-2px);
+}
+.trust-dark-num {
+  font-size: 2rem;
+  font-weight: 700;
+  background: var(--navy);
+  line-height: 1;
+  margin-bottom: 1rem;
+}
+.trust-dark-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+   color: var(--sand);
+  margin-bottom: 0.75rem;
+}
+.trust-dark-desc {
+  font-size: 0.875rem;
+  line-height: 1.7;
+  color: rgba(250, 247, 242, 0.7);
+}

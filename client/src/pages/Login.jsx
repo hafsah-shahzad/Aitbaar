@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { loginOrganizer } from "../api/Committeeapi.js";
+import { loginOrganizer } from "../api/Committeeapi";
 import "./Login.css";
 
 const API_BASE = "http://localhost:5000";
@@ -17,23 +17,21 @@ export default function Login() {
 
   function handleChange(e) {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    setError(""); // clear error on new input
+    setError("");
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
     setLoading(true);
-
     try {
       const data = await loginOrganizer(formData);
       localStorage.setItem("aitbaar_token", data.session.access_token);
       localStorage.setItem("aitbaar_organizer", JSON.stringify(data.organizer));
       navigate("/dashboard");
     } catch (err) {
-      // If rate limited, show friendly message without waiting
       if (err.message?.toLowerCase().includes("too many")) {
-        setError("Too many attempts from this device. Please try from a different browser or wait 15 minutes.");
+        setError("Too many attempts. Please try again later.");
       } else {
         setError(err.message);
       }
@@ -46,9 +44,8 @@ export default function Login() {
     e.preventDefault();
     setForgotLoading(true);
     setForgotMsg("");
-
     try {
-      const res = await fetch(`${API_BASE}/api/organizer/forgot-password`, {
+      const res = await fetch(API_BASE + "/api/organizer/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: forgotEmail }),
@@ -64,87 +61,142 @@ export default function Login() {
 
   return (
     <div className="login-page">
-      <div className="login-box">
-        <p className="login-logo font-display">Aitbaar</p>
-        <p className="login-subtitle">Log in to your organizer dashboard</p>
+      {/* Left Panel — Branding */}
+      <div className="login-left">
+        <div className="login-left-content">
+          <Link to="/" className="login-brand">
+            <span className="login-brand-urdu">اعتبار</span>
+            <span className="login-brand-en">Aitbaar</span>
+          </Link>
 
-        {!showForgot ? (
-          <>
-            <form onSubmit={handleSubmit} className="login-form">
-              <input
-                required
-                name="email"
-                type="email"
-                placeholder="Email address"
-                className="login-input"
-                value={formData.email}
-                onChange={handleChange}
-              />
-              <input
-                required
-                name="password"
-                type="password"
-                placeholder="Password"
-                className="login-input"
-                value={formData.password}
-                onChange={handleChange}
-              />
+          <h1 className="login-headline">
+            Manage your committee<br />
+            <span className="login-headline-accent">with trust</span>
+          </h1>
+          <p className="login-tagline">
+            AI-powered payment tracking, fraud detection, and trust scores all through WhatsApp.
+          </p>
 
-              {error && <p className="login-error">{error}</p>}
+          <div className="login-trust-badges">
+            <div className="login-badge">
+              <span className="login-badge-icon"></span>
+              <span>AI Fraud Shield</span>
+            </div>
+            <div className="login-badge">
+              <span className="login-badge-icon"></span>
+              <span>Trust Scores</span>
+            </div>
+            <div className="login-badge">
+              <span className="login-badge-icon"></span>
+              <span>WhatsApp Bot</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
-              <button type="submit" disabled={loading} className="login-submit">
-                {loading ? "Logging in..." : "Log in"}
-              </button>
-            </form>
+      {/* Right Panel — Form */}
+      <div className="login-right">
+        <div className="login-form-container">
+          <div className="login-form-header">
+            <p className="login-welcome">Welcome back</p>
+            <h2 className="login-title">Log in to your dashboard</h2>
+          </div>
 
-            <button
-              onClick={() => setShowForgot(true)}
-              className="login-footer-link block text-center mt-3 text-sm"
-            >
-              Forgot password?
-            </button>
+          {!showForgot ? (
+            <>
+              <form onSubmit={handleSubmit} className="login-form">
+                <div className="login-field">
+                  <label className="login-label">Email</label>
+                  <input
+                    required
+                    name="email"
+                    type="email"
+                    placeholder="organizer@email.com"
+                    className="login-input"
+                    value={formData.email}
+                    onChange={handleChange}
+                  />
+                </div>
+                <div className="login-field">
+                  <label className="login-label">Password</label>
+                  <input
+                    required
+                    name="password"
+                    type="password"
+                    placeholder="Enter your password"
+                    className="login-input"
+                    value={formData.password}
+                    onChange={handleChange}
+                  />
+                </div>
 
-            <p className="login-footer-text">
-              Don't have a committee yet?{" "}
-              <Link to="/" className="login-footer-link">Go to home</Link>
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="text-sm text-[#5C6270] mb-4">
-              Enter your email and we'll send you a reset link.
-            </p>
-            <form onSubmit={handleForgotPassword} className="login-form">
-              <input
-                required
-                type="email"
-                placeholder="Your email address"
-                className="login-input"
-                value={forgotEmail}
-                onChange={(e) => setForgotEmail(e.target.value)}
-              />
+                <div className="login-options">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgot(true)}
+                    className="login-forgot-link"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
 
-              {forgotMsg && (
-                <p className="text-xs text-[#1E3A5F] pt-1">{forgotMsg}</p>
-              )}
+                {error && <p className="login-error">{error}</p>}
+
+                <button type="submit" disabled={loading} className="login-submit">
+                  {loading ? (
+                    <span className="login-loading">
+                      <span className="login-spinner"></span>
+                      Logging in...
+                    </span>
+                  ) : (
+                    "Log in"
+                  )}
+                </button>
+              </form>
+
+              <div className="login-divider">
+                <span>or</span>
+              </div>
+
+              <p className="login-footer-text">
+                Don't have a committee yet?{" "}
+                <Link to="/" className="login-footer-link">Back to home</Link>
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="login-forgot-desc">
+                Enter your email and we'll send you a reset link.
+              </p>
+              <form onSubmit={handleForgotPassword} className="login-form">
+                <div className="login-field">
+                  <label className="login-label">Email</label>
+                  <input
+                    required
+                    type="email"
+                    placeholder="organizer@email.com"
+                    className="login-input"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                  />
+                </div>
+
+                {forgotMsg && <p className="login-success-msg">{forgotMsg}</p>}
+
+                <button type="submit" disabled={forgotLoading} className="login-submit">
+                  {forgotLoading ? "Sending..." : "Send reset link"}
+                </button>
+              </form>
 
               <button
-                type="submit"
-                disabled={forgotLoading}
-                className="login-submit"
+                onClick={() => { setShowForgot(false); setForgotMsg(""); }}
+                className="login-back-link"
               >
-                {forgotLoading ? "Sending..." : "Send reset link"}
+                ← Back to login
               </button>
-            </form>
-
-            <button
-              onClick={() => { setShowForgot(false); setForgotMsg(""); }}
-              className="login-footer-link block text-center mt-3 text-sm"
-            >
-              &larr; Back to login
-            </button>
-          </>
-        )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
