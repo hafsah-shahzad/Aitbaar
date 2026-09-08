@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import "./HowItWorks.css";
+import "./HowitWorks.css";
 // This page is self-contained -- its own CSS file has everything it needs,
 // including its own copy of the "btn-primary-lg" button style.
 

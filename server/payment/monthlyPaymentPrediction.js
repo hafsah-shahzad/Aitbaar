@@ -7,7 +7,7 @@ const supabase = require("../config/supabaseClient");
 const { predictPaymentRisks } = require("../services/predictionService");
 const { sendWhatsAppMessage } = require("../services/whatsappService");
 
-function monthlyPaymentPredictionJob() {
+function monthlyPaymentPrediction() {
   cron.schedule("0 8 1 * *", async () => {
     console.log("Running monthly payment prediction job...");
 
@@ -66,4 +66,4 @@ function monthlyPaymentPredictionJob() {
   console.log("Monthly payment prediction job scheduled (1st of every month, 8:00 AM)");
 }
 
-module.exports = { monthlyPaymentPredictionJob };
+module.exports = { monthlyPaymentPrediction };

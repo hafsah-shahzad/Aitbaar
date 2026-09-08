@@ -11,8 +11,8 @@ const payoutRoutes = require("./routes/payoutRoutes");
 const priorityRoutes = require("./routes/priorityRoutes");
 const scamShieldRoutes = require("./routes/scamShieldRoutes");
 const { generalLimiter } = require("./middleware/rateLimiter");
-const { startWeeklyAnomalyCheck, runManualCheck } = require("./jobs/weeklyAnomalyCheckJob");
-const { startMonthlyReminderJob } = require("./jobs/monthlyReminderJob");
+const { startWeeklyAnomalyCheck, runManualCheck } = require("./payment/weeklyAnomalyCheck");
+const { startMonthlyPaymentReminder } = require("./payment/monthlyPaymentReminder");
 const { predictPaymentRisk, sendPaymentReminders } = require("./services/predictiveService");
 
 const app = express();
@@ -85,5 +85,5 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Aitbaar backend running on http://localhost:${PORT}`);
   startWeeklyAnomalyCheck();
-  startMonthlyReminderJob();
+  startMonthlyPaymentReminder();
 });

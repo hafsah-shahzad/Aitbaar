@@ -5,7 +5,7 @@ const cron = require("node-cron");
 const supabase = require("../config/supabaseClient");
 const { sendPaymentReminders } = require("../services/predictiveService");
 
-function startMonthlyReminderJob() {
+function startMonthlyPaymentReminder() {
   cron.schedule("0 10 25 * *", async () => {
     console.log("Running monthly payment reminder job...");
 
@@ -31,4 +31,4 @@ function startMonthlyReminderJob() {
   console.log("Monthly reminder job scheduled (25th of every month, 10:00 AM)");
 }
 
-module.exports = { startMonthlyReminderJob };
+module.exports = { startMonthlyPaymentReminder };

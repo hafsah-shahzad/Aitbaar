@@ -83,3 +83,17 @@ export async function deleteMember(memberId) {
   if (!data.success) throw new Error(data.error || "Could not delete member");
   return data;
 }
+
+export async function getAIPayoutStatus(committeeId) {
+  const res = await fetch(`${API_BASE}/api/payout/${committeeId}/ai-status`);
+  const data = await res.json();
+  if (!data.success) throw new Error(data.error || "Could not load AI status");
+  return data;
+}
+
+export async function getTrustExplanation(memberId, committeeId) {
+  const res = await fetch(`${API_BASE}/api/dashboard/member/${memberId}/trust-explanation?committeeId=${committeeId}`);
+  const data = await res.json();
+  if (!data.success) throw new Error(data.error || "Could not load explanation");
+  return data.explanation;
+}
