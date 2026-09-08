@@ -5,9 +5,9 @@ const cron = require("node-cron");
 const supabase = require("../config/supabaseClient");
 const { sendPaymentReminders } = require("../services/predictiveService");
 
-function startMonthlyReminderJob() {
+function monthlyPaymentReminder() {
   cron.schedule("0 10 25 * *", async () => {
-    console.log("Running monthly payment reminder job...");
+    console.log("Running monthly payment reminder...");
 
     try {
       const { data: committees } = await supabase
@@ -22,13 +22,13 @@ function startMonthlyReminderJob() {
         console.log(`Sent ${result.sent} reminders for ${committee.code}`);
       }
 
-      console.log("Monthly reminder job complete.");
+      console.log("Monthly payment reminder complete.");
     } catch (err) {
-      console.error("Monthly reminder job failed:", err.message);
+      console.error("Monthly payment reminder failed:", err.message);
     }
   });
 
-  console.log("Monthly reminder job scheduled (25th of every month, 10:00 AM)");
+  console.log("Monthly payment reminder scheduled (25th of every month, 10:00 AM)");
 }
 
-module.exports = { startMonthlyReminderJob };
+module.exports = { monthlyPaymentReminder };
