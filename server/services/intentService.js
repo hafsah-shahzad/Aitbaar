@@ -1,86 +1,32 @@
+const { chatCompletion, MODELS } = require("./llmProvider");
 
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const SYSTEM_PROMPT = `You are the intent classifier for Aitbaar, a WhatsApp assistant for Pakistani savings committee (bisi/kameti) members. Return ONLY a JSON object: {"intent": "payment_confirmation"|"trust_score_query"|"trust_score_explanation"|"priority_request"|"general_query"|"other", "amount": number|null, "confidence": "high"|"low"}. Extract amount as a number if mentioned, else null.`;
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const FEW_SHOT = [
+  { role: "user", content: "paisay de diye" },
+  { role: "assistant", content: '{"intent":"payment_confirmation","amount":null,"confidence":"high"}' },
+  { role: "user", content: "5000 transfer kar diya" },
+  { role: "assistant", content: '{"intent":"payment_confirmation","amount":5000,"confidence":"high"}' },
+  { role: "user", content: "mera trust score kya hai?" },
+  { role: "assistant", content: '{"intent":"trust_score_query","amount":null,"confidence":"high"}' },
+  { role: "user", content: "mera score kyun itna kam hai?" },
+  { role: "assistant", content: '{"intent":"trust_score_explanation","amount":null,"confidence":"high"}' },
+  { role: "user", content: "mujhe is mahina jaldi paisay chahiye, medical emergency hai" },
+  { role: "assistant", content: '{"intent":"priority_request","amount":null,"confidence":"high"}' },
+];
 
 async function detectIntent(transcript) {
-  const model = genAI.getGenerativeModel({
-    model: "gemini-3.5-flash-lite",
-  });
-
-  const prompt = `
-You are the intent detection system for Aitbaar, an AI assistant
-for committee (bisi/kameti) members in Pakistan.
-
-The user's message is:
-
-"${transcript}"
-
-Determine the user's intent.
-
-Return ONLY valid JSON:
-
-{
-  "intent": "payment_confirmation" | "trust_score_query" | "trust_score_explanation" | "priority_request" | "general_query" | "other",
-  "amount": null,
-  "confidence": "high" | "low"
-}
-
-Payment confirmation examples:
-"paisay de diye", "payment kar di", "bhej diye",
-"transfer kar diya", "jama kar diya"
-
-Trust score query (just the number):
-"mera trust score kya hai?",
-"mera score batao",
-"meri rating kya hai?"
-
-Trust score explanation (detailed breakdown + why):
-"mera score kyun itna hai?",
-"why is my score like this?",
-"score kyun kam hai?",
-"why is my trust score low?",
-"mera score kaise barhay?",
-"explain my score",
-"mujhe samjhao score kyun hai"
-
-Priority request examples (member wants early payout this month):
-"mujhe is mahina paisay chahiye", "meri fee bharni hai",
-"medical emergency hai", "mujhe jaldi payout chahiye",
-"school fee ki deadline aa rahi hai", "rent dena hai",
-"mujhe pehle milna chahiye", "urgent hai mera kaam"
-
-If an amount is mentioned, return it as a number.
-
-If no amount is mentioned:
-"amount": null
-`.trim();
-
   try {
-    const result = await model.generateContent(prompt);
-
-    const text = result.response
-      .text()
-      .replace(/```json/gi, "")
-      .replace(/```/g, "")
-      .trim();
-
-    const parsed = JSON.parse(text);
-
+    const message = await chatCompletion(
+      [{ role: "system", content: SYSTEM_PROMPT }, ...FEW_SHOT, { role: "user", content: transcript }],
+      { model: MODELS.FLASH, temperature: 0.2, maxTokens: 100, jsonMode: true }
+    );
+    const parsed = JSON.parse(message.content.trim());
     console.log("Detected intent:", parsed);
-
     return parsed;
   } catch (err) {
-    console.error(
-      "Intent detection failed:",
-      err.message
-    );
-
-    return {
-      intent: "general_query",
-      amount: null,
-      confidence: "low",
-    };
+    console.error("Intent detection failed (Qwen):", err.message);
+    return { intent: "general_query", amount: null, confidence: "low" };
   }
 }
 
