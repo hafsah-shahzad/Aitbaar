@@ -50,3 +50,4 @@ router.get("/:committeeId/predictions", async (req, res) => {
 });
 
 module.exports = router;
+

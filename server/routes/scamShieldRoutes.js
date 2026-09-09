@@ -31,7 +31,27 @@ router.get("/alerts/:committeeId", async (req, res) => {
     const { data, error } = await query;
 
     if (error) throw new Error(error.message);
-    res.json({ success: true, alerts: data || [] });
+     // Resolve reviewed_by UUID to organizer name
+    const alerts = data || [];
+    const reviewerIds = [...new Set(alerts.filter((a) => a.reviewed_by).map((a) => a.reviewed_by))];
+    let reviewerMap = {};
+    if (reviewerIds.length > 0) {
+      const { data: reviewers } = await supabase
+        .from("organizers")
+        .select("id, name")
+        .in("id", reviewerIds);
+      if (reviewers) {
+        reviewers.forEach((r) => { reviewerMap[r.id] = r.name; });
+      }
+    }
+
+    // Attach reviewer name to each alert
+    const enrichedAlerts = alerts.map((a) => ({
+      ...a,
+      reviewed_by_name: a.reviewed_by ? (reviewerMap[a.reviewed_by] || "Unknown Organizer") : null,
+    }));
+
+    res.json({ success: true, alerts: enrichedAlerts });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -112,7 +132,19 @@ router.patch("/alert/:alertId/dismiss", async (req, res) => {
       .single();
 
     if (error) throw new Error(error.message);
-    res.json({ success: true, alert: data });
+  
+    // Resolve reviewer name
+    let reviewedByName = null;
+    if (data.reviewed_by) {
+      const { data: reviewer } = await supabase
+        .from("organizers")
+        .select("name")
+        .eq("id", data.reviewed_by)
+        .maybeSingle();
+      reviewedByName = reviewer?.name || "Unknown Organizer";
+    }
+
+    res.json({ success: true, alert: { ...data, reviewed_by_name: reviewedByName } });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -140,7 +172,18 @@ router.patch("/alert/:alertId/confirm", async (req, res) => {
       .single();
 
     if (error) throw new Error(error.message);
-    res.json({ success: true, alert: data });
+   // Resolve reviewer name
+    let reviewedByName = null;
+    if (data.reviewed_by) {
+      const { data: reviewer } = await supabase
+        .from("organizers")
+        .select("name")
+        .eq("id", data.reviewed_by)
+        .maybeSingle();
+      reviewedByName = reviewer?.name || "Unknown Organizer";
+    }
+
+    res.json({ success: true, alert: { ...data, reviewed_by_name: reviewedByName } });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

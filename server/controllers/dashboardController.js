@@ -41,12 +41,55 @@ async function getDashboardData(req, res) {
       .select("*")
       .eq("committee_id", committeeId);
 
+       // Fetch payout schedule for slot assignments
+    const { data: payoutSchedule } = await supabase
+      .from("payout_schedule")
+      .select("member_id, payout_order, type")
+      .eq("committee_id", committeeId)
+      .order("payout_order", { ascending: true });
+
+    
+    
+    // Fetch current month payment for each member (for detailed status)
+    const { data: currentMonthPayments } = await supabase
+      .from("payment_records")
+      .select("id, member_id, status, amount, month")
+      .eq("committee_id", committeeId)
+      .eq("month", currentMonth);
+
     const { data: anomalies } = await supabase
       .from("anomaly_flags")
       .select("*, members(phone, name)")
       .eq("committee_id", committeeId)
       .order("created_at", { ascending: false })
       .limit(5);
+
+       const anomalyReviewerIds = [...new Set(
+      (anomalies || []).filter((a) => a.reviewed_by).map((a) => a.reviewed_by)
+    )];
+    let anomalyReviewerMap = {};
+    if (anomalyReviewerIds.length > 0) {
+      const { data: anomalyReviewers } = await supabase
+        .from("organizers")
+        .select("id, name")
+        .in("id", anomalyReviewerIds);
+      if (anomalyReviewers) {
+        anomalyReviewers.forEach((r) => { anomalyReviewerMap[r.id] = r.name; });
+      }
+    }
+    const enrichedAnomalies = (anomalies || []).map((a) => ({
+      ...a,
+      reviewed_by_name: a.reviewed_by ? (anomalyReviewerMap[a.reviewed_by] || "Unknown Organizer") : null,
+    }));
+
+      // Build payout slot map
+    const payoutSlotMap = {};
+    if (payoutSchedule) {
+      payoutSchedule.forEach((ps) => {
+        payoutSlotMap[ps.member_id] = ps.payout_order;
+      });
+    }
+
 
     // Merge member data
     const membersWithScores = (members || []).map((member) => {
@@ -57,11 +100,23 @@ async function getDashboardData(req, res) {
       const totalPaymentsMade = (allPayments || []).filter(
         (p) => p.member_id === member.id && p.status === "confirmed"
       ).length;
+
+           // Per-member current month payment status
+      const memberCurrentPayment = (currentMonthPayments || []).find(
+        (p) => p.member_id === member.id
+      );
+      let paymentStatus = "pending";
+      if (memberCurrentPayment) {
+        paymentStatus = memberCurrentPayment.status; // confirmed, rejected, pending
+      }
       return {
         ...member,
         trust_score: scoreRecord?.score ?? 100,
         paid_this_month: hasPaidThisMonth,
         total_payments_made: totalPaymentsMade,
+           payout_slot: payoutSlotMap[member.id] || null,
+        payment_status: paymentStatus,
+        current_payment_id: memberCurrentPayment?.id || null,
       };
     });
 
@@ -137,6 +192,8 @@ async function getDashboardData(req, res) {
       low: membersWithScores.filter((m) => m.trust_score < 50).length,
     };
 
+     // AI payout generation status
+    const payoutType = payoutSchedule && payoutSchedule.length > 0 ? payoutSchedule[0].type : null;
     res.json({
       success: true,
       committee,
@@ -162,6 +219,8 @@ async function getDashboardData(req, res) {
       anomalies: anomalies || [],
       paymentTrend,
       trustDistribution,
+      payoutType,
+      payoutSchedule: payoutSchedule || [],
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

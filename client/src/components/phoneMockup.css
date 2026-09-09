@@ -412,13 +412,13 @@
 }
 
 /* Legacy trust card (hidden but kept for reference) */
-/* .phone-trust-time {
+.phone-trust-time {
   margin-top: 0.25rem;
   display: block;
   text-align: right;
   font-size: 10px;
   color: rgba(17, 27, 33, 0.45);
-} */
+}
 
 .phone-input-row {
   display: flex;
@@ -456,25 +456,25 @@
 .phone-input-attach,
 .phone-input-camera {
   font-size: 1rem;
-  color: rgba(17, 27, 33, 0.6);
 }
 
 .phone-mic {
   display: grid;
+  height: 2.75rem;
+  width: 2.75rem;
+  flex-shrink: 0;
   place-items: center;
-  height: 38px;
-  width: 38px;
   border-radius: 9999px;
   background-color: #075e54;
-  color: #fff;
-  font-size: 1rem;
-  flex-shrink: 0;
+  font-size: 1.125rem;
 }
 
 .phone-home-indicator {
-  margin: 6px auto 0;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 0.5rem;
   height: 4px;
-  width: 100px;
+  width: 7rem;
   border-radius: 9999px;
-  background-color: rgba(0, 0, 0, 0.3);
+  background-color: rgba(17, 27, 33, 0.5);
 }

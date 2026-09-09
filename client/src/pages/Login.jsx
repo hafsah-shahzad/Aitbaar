@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { loginOrganizer } from "../api/Committeeapi";
+import { loginOrganizer } from "../api/CommitteeApi";
 import "./Login.css";
 
 const API_BASE = "http://localhost:5000";

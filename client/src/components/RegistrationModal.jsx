@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { registerOrganizer, createCommittee } from "../api/Committeeapi";
+import { registerOrganizer, createCommittee } from "../api/CommitteeApi";
 import "./RegistrationModal.css";
 
 const API_BASE = "http://localhost:5000";

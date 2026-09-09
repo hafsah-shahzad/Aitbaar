@@ -41,10 +41,41 @@ async function registerOrganizer(req, res) {
               success: false,
               error: "This email is already registered. Please log in instead.",
             });
-          } else {
-            // Orphaned account from a past failed registration -- repair it
-            // by creating the missing profile row now, instead of making
-            // the user stuck forever.
+          // } else {
+          //   // Orphaned account from a past failed registration -- repair it
+          //   // by creating the missing profile row now, instead of making
+          //   // the user stuck forever.
+          //   const { data: repairedOrganizer, error: repairError } = await supabase
+          //     .from("organizers")
+          //     .insert([{ name, email, phone, user_id: matchedUser.id }])
+          //     .select()
+          //     .single();
+
+          //   if (repairError) {
+          //     return res.status(400).json({ success: false, error: repairError.message });
+          //   }
+
+          //   return res.status(201).json({
+          //     success: true,
+          //     message: "Organizer registered successfully",
+          //     organizer: repairedOrganizer,
+          //   });
+          // }
+
+                    } else {
+            // Orphaned account from a past failed registration -- repair it.
+            // First sync the password/email-confirm state on the existing
+            // auth user, since the earlier createUser call never completed,
+            // then create the missing profile row.
+            const { error: updateError } = await supabase.auth.admin.updateUserById(
+              matchedUser.id,
+              { password, email_confirm: true }
+            );
+
+            if (updateError) {
+              return res.status(400).json({ success: false, error: updateError.message });
+            }
+
             const { data: repairedOrganizer, error: repairError } = await supabase
               .from("organizers")
               .insert([{ name, email, phone, user_id: matchedUser.id }])
@@ -105,7 +136,15 @@ async function loginOrganizer(req, res) {
       password,
     });
 
-    if (error) {
+    // if (error) {
+    //   return res.status(401).json({
+    //     success: false,
+    //     error: "Incorrect email or password. Please try again.",
+    //   });
+    // }
+
+        if (error) {
+      console.error("Supabase login error:", error.message, error.status);
       return res.status(401).json({
         success: false,
         error: "Incorrect email or password. Please try again.",

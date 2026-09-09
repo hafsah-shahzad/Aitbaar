@@ -16,7 +16,7 @@ import {
   getOrganizerCommittees, getDashboardData,
   getPendingPayments, verifyPayment, deleteMember,
   getAIPayoutStatus,
-} from "../api/Committeeapi";
+} from "../api/CommitteeApi";
 import RegistrationModal from "../components/RegistrationModal";
 import PayoutSchedule from "../components/payoutSchedule";
 import "./Dashboard.css";
