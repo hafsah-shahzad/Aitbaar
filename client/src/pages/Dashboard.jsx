@@ -21,7 +21,7 @@ import RegistrationModal from "../components/RegistrationModal";
 import PayoutSchedule from "../components/payoutSchedule";
 import "./Dashboard.css";
 
-const API_BASE = "http://localhost:5001";
+const API_BASE = "http://localhost:5000";
 
 const NAV_ITEMS = [
   { key: "overview", label: "Overview", icon: LayoutGrid },

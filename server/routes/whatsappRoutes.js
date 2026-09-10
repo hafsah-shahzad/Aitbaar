@@ -15,6 +15,7 @@ const { markPositionSatisfied, markPositionChangeRequested, getActiveOrder } = r
 const { createChangeRequest } = require("../services/payoutChangeService");
 const { createPriorityRequest } = require("../services/priorityRequestService");
 const { scanMessage, getScamWarningMessage, getOrganizerAlertMessage } = require("../services/scamDetectionService");
+const { sendMemberRulesPdf } = require("../services/memberRulesPdfService");
 const supabase = require("../config/supabaseClient");
 const COMMITTEE_CODE_PATTERN = /C[\s-]?[A-Z0-9]{4,8}/i;
 
@@ -255,6 +256,7 @@ router.post("/", async function(req, res) {
       if (!isValidName(name)) { await reply(fromNumber, getMessage("invalidName", sessLang), isVoiceMessage); return res.sendStatus(200); }
       await supabase.from("members").update({ name: name }).eq("phone", fromNumber).eq("committee_id", session.pending_committee_id);
       await upsertSession(fromNumber, { state: "awaiting_rules_acceptance", pending_committee_id: session.pending_committee_id, pending_member_id: session.pending_member_id, pending_member_name: name, language: sessLang });
+      await sendMemberRulesPdf(fromNumber, sessLang);
       await reply(fromNumber, getMessage("rulesAcceptancePrompt", sessLang), isVoiceMessage);
       return res.sendStatus(200);
     }
@@ -333,7 +335,8 @@ router.post("/", async function(req, res) {
         if (regResult.alreadyRegistered) { await clearSession(fromNumber); await reply(fromNumber, getMessage("alreadyMember", sessLang), isVoiceMessage); return res.sendStatus(200); }
         if (kn2) {
           await supabase.from("members").update({ name: kn2 }).eq("phone", fromNumber).eq("committee_id", session.pending_committee_id);
-          await upsertSession(fromNumber, { state: "awaiting_rules_acceptance", pending_committee_id: session.pending_committee_id, pending_member_id: regResult.member && regResult.member.id, pending_member_name: kn2, language: sessLang });
+                   await upsertSession(fromNumber, { state: "awaiting_rules_acceptance", pending_committee_id: session.pending_committee_id, pending_member_id: regResult.member && regResult.member.id, pending_member_name: kn2, language: sessLang });
+          await sendMemberRulesPdf(fromNumber, sessLang);
           await reply(fromNumber, getMessage("rulesAcceptancePrompt", sessLang), isVoiceMessage);
         } else {
           await upsertSession(fromNumber, { state: "awaiting_name", pending_committee_id: session.pending_committee_id, pending_member_id: regResult.member && regResult.member.id, language: sessLang });

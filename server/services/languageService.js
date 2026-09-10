@@ -241,6 +241,8 @@ const MESSAGES = {
     urdu: "کیا آپ ان قواعد سے اتفاق کرتے ہیں؟\n\nجواب دیں:\n*ہاں* — اگر آپ قبول کرتے ہیں\n*نہیں* — اگر آپ قبول نہیں کرتے",
     roman_urdu: "Kya aap in qawaid se ittefaq karte hain?\n\nJawab dein:\n*Haan* - agar aap qubool karte hain\n*Nahi* - agar aap qubool nahi karte",
     english: "Do you agree to these rules?\n\nReply with:\n*Yes* - if you accept\n*No* - if you do not accept"
+   
+
   },
 
   confirmRegistration: {

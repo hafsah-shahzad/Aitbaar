@@ -10,6 +10,7 @@ const paymentRoutes = require("./routes/paymentRoutes");
 const payoutRoutes = require("./routes/payoutRoutes");
 const priorityRoutes = require("./routes/priorityRoutes");
 const scamShieldRoutes = require("./routes/scamShieldRoutes");
+const memberRulesRoutes = require("./routes/memberRulesRoutes");
 const { generalLimiter } = require("./middleware/rateLimiter");
 const { startWeeklyAnomalyCheck, runManualCheck } = require("./payment/weeklyAnomalyCheck");
 const { startMonthlyPaymentReminder } = require("./payment/monthlyPaymentReminder");
@@ -79,6 +80,7 @@ app.use("/api/payment", paymentRoutes);
 app.use("/api/payout", payoutRoutes);
 app.use("/api/priority", priorityRoutes);
 app.use("/api/scam", scamShieldRoutes);
+app.use("/api/member-rules", memberRulesRoutes);
 app.use("/webhook", whatsappRoutes);
 
 const PORT = process.env.PORT || 5000;
