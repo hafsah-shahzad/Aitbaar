@@ -69,8 +69,27 @@
 .dash-switcher-option.active { background: #E3F2FD; }
 .dash-switcher-option-name { font-size: 13px; font-weight: 500; color: var(--dash-text); }
 .dash-switcher-option-code { font-size: 11px; color: var(--dash-text-muted); }
-.dash-add-btn { display: flex; align-items: center; gap: 5px; padding: 7px 14px; border-radius: 8px; background: var(--dash-navy); color: #fff; font-size: 12px; font-weight: 500; border: none; cursor: pointer; transition: background var(--dash-transition); }
-.dash-add-btn:hover { background: #2E5384; }
+.dash-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  background: var(--dash-navy);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: background var(--dash-transition);
+}
+.dash-add-btn:hover {
+  background: #2E5384;
+}
+.dash-add-btn:disabled {
+  background: #6B7280;
+  cursor: not-allowed;
+}
 
 /* ═══ CONTENT ═══ */
 .dash-content { padding: 24px 28px 40px; }
