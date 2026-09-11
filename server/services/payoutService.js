@@ -1,6 +1,9 @@
+<<<<<<< HEAD
 // This file's job: generate payout schedules for committees.
 // Two modes: AI-generated (locked after creation) or manual (always editable).
 
+=======
+>>>>>>> 0c9fc72660758813ea8c85ee2cb84adb4d0c4954
 const supabase = require("../config/supabaseClient");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
