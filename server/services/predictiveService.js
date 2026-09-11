@@ -1,6 +1,3 @@
-// This file's job: predict which members are likely to miss their payment
-// this month, based on past behavior patterns.
-
 const supabase = require("../config/supabaseClient");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
