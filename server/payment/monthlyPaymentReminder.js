@@ -20,7 +20,7 @@ const REMINDER_MESSAGES = {
   3: (name, committee, amount) =>
     `${name}, "${committee}" ki Rs ${amount} payment 3 din se pending hai. Please jaldi payment confirm karwayein taake koi masla na ho.`,
   6: (name, committee, amount) =>
-    `${name}, "${committee}" ki Rs ${amount} payment ${amount ? "6 din ya us se zyada se" : "kaafi arsay se"} late hai. Is se aapka trust score prabhavit ho sakta hai — please turant payment karein.`,
+    `${name}, "${committee}" ki Rs ${amount} payment ${amount ? "6 din ya us se zyada se" : "kaafi arsay se"} late hai. Is se aapka trust score come ho sakta hai please jaldi payment karein.`,
 };
 
 // Picks the highest tier the member currently qualifies for.
