@@ -1,17 +1,17 @@
 const supabase = require("../config/supabaseClient");
 const { getDueDateForCycle } = require("./paymentService");
 
-function pointsForCycle(record) {
-  if (!record) return { points: 0, max: 4, resolved: true }; // missed entirely
-  if (record.status === "rejected") return { points: 0, max: 4, resolved: true };
-  if (record.status === "pending") return { points: 0, max: 0, resolved: false }; // not counted yet
+function pointsForCycle(record, monthlyValue) {
+  if (!record) return 0; // missed entirely
+  if (record.status === "rejected") return 0;
+  if (record.status === "pending") return null; // not resolved yet — skip
   if (record.status === "confirmed") {
-    if (!record.is_late) return { points: 4, max: 4, resolved: true };
+    if (!record.is_late) return monthlyValue;
     const daysLate = record.days_late || 1;
-    const points = daysLate <= 2 ? 3 : daysLate <= 5 ? 2 : 1;
-    return { points, max: 4, resolved: true };
+    const reduction = Math.min(monthlyValue - 1, Math.ceil(daysLate / 3));
+    return Math.max(0, Math.round((monthlyValue - reduction) * 10) / 10);
   }
-  return { points: 0, max: 4, resolved: true };
+  return 0;
 }
 
 async function recalculateTrustScore(memberId, committeeId) {
@@ -24,15 +24,23 @@ async function recalculateTrustScore(memberId, committeeId) {
   if (!committee || !committee.start_date) return null;
 
   const durationMonths = committee.duration_months || 12;
+  const monthlyValue = 100 / durationMonths;
   const today = new Date();
+
+  // If the member's very first due date hasn't arrived yet, there's
+  // nothing to score — stay at a neutral default rather than 0.
+  const firstDue = getDueDateForCycle(committee.start_date, 0);
+  if (firstDue > today) {
+    await upsertScore(memberId, committeeId, 100);
+    return 100;
+  }
 
   const { data: payments } = await supabase
     .from("payment_records")
-    .select("month, status, is_late, days_late, created_at")
+    .select("month, status, is_late, days_late")
     .eq("member_id", memberId)
     .eq("committee_id", committeeId);
 
-  // Best record per month (confirmed > pending > rejected)
   const statusPriority = { confirmed: 3, pending: 2, rejected: 1 };
   const byMonth = {};
   for (const p of payments || []) {
@@ -42,41 +50,35 @@ async function recalculateTrustScore(memberId, committeeId) {
     }
   }
 
-  let pointsEarned = 0;
-  let pointsPossible = 0;
-  const resolvedCycles = []; // for streak calculation, in order
+  let score = 0;
+  let streak = 0;
+  const cycleResults = [];
 
   for (let i = 0; i < durationMonths; i++) {
     const dueDate = getDueDateForCycle(committee.start_date, i);
-    if (dueDate > today) break; // cycle hasn't happened yet — stop counting
+    if (dueDate > today) break;
 
     const monthLabel = dueDate.toLocaleString("en-PK", { month: "long", year: "numeric" });
-    const record = byMonth[monthLabel];
-    const { points, max, resolved } = pointsForCycle(record);
+    const points = pointsForCycle(byMonth[monthLabel], monthlyValue);
 
-    if (!resolved) continue; // pending — don't count against or for them yet
-
-    pointsEarned += points;
-    pointsPossible += max;
-    resolvedCycles.push({ onTime: points === 4 });
+    if (points === null) continue; // pending — doesn't add or subtract yet
+    score += points;
+    cycleResults.push({ onTime: points >= monthlyValue - 0.05 });
   }
 
-  let score;
-  if (pointsPossible === 0) {
-    score = 100; // no resolved cycles yet — neutral, nothing to judge
-  } else {
-    score = Math.round((pointsEarned / pointsPossible) * 100);
-  }
+  score = Math.max(0, Math.min(100, Math.round(score)));
 
-  // Streak bonus: consecutive on-time cycles, most recent first
-  let streak = 0;
-  for (let i = resolvedCycles.length - 1; i >= 0; i--) {
-    if (resolvedCycles[i].onTime) streak++;
+  for (let i = cycleResults.length - 1; i >= 0; i--) {
+    if (cycleResults[i].onTime) streak++;
     else break;
   }
-  score = Math.min(100, score + Math.min(10, streak));
-  score = Math.max(0, score);
 
+  await upsertScore(memberId, committeeId, score);
+  console.log(`[TRUST] Member ${memberId}: score=${score}/100 (monthlyValue=${monthlyValue.toFixed(1)}, cycles=${cycleResults.length}, streak=${streak})`);
+  return score;
+}
+
+async function upsertScore(memberId, committeeId, score) {
   const { data: existing } = await supabase
     .from("trust_scores")
     .select("id")
@@ -89,9 +91,6 @@ async function recalculateTrustScore(memberId, committeeId) {
   } else {
     await supabase.from("trust_scores").insert([{ member_id: memberId, committee_id: committeeId, score }]);
   }
-
-  console.log(`[TRUST] Member ${memberId}: score=${score} (earned=${pointsEarned}/${pointsPossible}, streak=${streak})`);
-  return score;
 }
 
 module.exports = { recalculateTrustScore };
