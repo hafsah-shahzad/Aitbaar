@@ -29,6 +29,63 @@ function daysBetween(a, b) {
   return Math.round((bDate - aDate) / msPerDay);
 }
 
+// Returns the due date for the Nth cycle (0-indexed) of a committee,
+// clamping to the last valid day of that month (e.g. start on the 31st
+// becomes the 28th/29th in February).
+function getDueDateForCycle(startDate, cycleIndex) {
+  const start = new Date(startDate);
+  const targetMonthRaw = start.getMonth() + cycleIndex;
+  const targetYear = start.getFullYear() + Math.floor(targetMonthRaw / 12);
+  const targetMonth = ((targetMonthRaw % 12) + 12) % 12;
+  const lastDay = new Date(targetYear, targetMonth + 1, 0).getDate();
+  const day = Math.min(start.getDate(), lastDay);
+  return new Date(targetYear, targetMonth, day);
+}
+
+// Finds the member's next unpaid cycle — walking forward from the
+// committee's own start date, not from "today". Returns whether that
+// cycle is upcoming or already overdue.
+async function getNextPaymentInfo(memberId, committeeId) {
+  const { data: committee } = await supabase
+    .from("committees")
+    .select("name, start_date, duration_months, monthly_amount")
+    .eq("id", committeeId)
+    .maybeSingle();
+
+  if (!committee || !committee.start_date) return { found: false };
+
+  const { data: payments } = await supabase
+    .from("payment_records")
+    .select("month, status")
+    .eq("member_id", memberId)
+    .eq("committee_id", committeeId)
+    .in("status", ["pending", "confirmed"]);
+
+  const paidMonths = new Set((payments || []).map((p) => p.month));
+  const today = new Date();
+  const durationMonths = committee.duration_months || 12;
+
+  for (let i = 0; i < durationMonths; i++) {
+    const dueDate = getDueDateForCycle(committee.start_date, i);
+    const monthLabel = dueDate.toLocaleString("en-PK", { month: "long", year: "numeric" });
+
+    if (paidMonths.has(monthLabel)) continue; // already paid/claimed — check next cycle
+
+    const diffDays = daysBetween(dueDate, today); // positive if due date has passed
+    return {
+      found: true,
+      committee_name: committee.name,
+      monthly_amount: committee.monthly_amount,
+      due_date: dueDate.toISOString().slice(0, 10),
+      is_overdue: diffDays > 0,
+      days_overdue: diffDays > 0 ? diffDays : 0,
+      days_until_due: diffDays <= 0 ? Math.abs(diffDays) : 0,
+    };
+  }
+
+  return { found: true, all_cycles_paid: true, committee_name: committee.name };
+}
+
 async function savePaymentRecord({ memberId, committeeId, amount }) {
   const now = new Date();
   const month = now.toLocaleString("en-PK", { month: "long", year: "numeric" });
@@ -180,4 +237,6 @@ module.exports = {
   getTrustScore,
   getPendingPayments,
   getDueDateForNow,
+  getDueDateForCycle,
+  getNextPaymentInfo,
 };
