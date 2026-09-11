@@ -70,6 +70,20 @@
   @apply w-full mt-4 px-6 py-3 rounded-lg bg-[#1E3A5F] text-white font-medium hover:bg-[#2E5384] transition disabled:opacity-60;
 }
 
+/* Read-only organizer fields (pre-filled, non-editable) */
+.form-input:read-only {
+  background: #F0F1F3;
+  color: #5C6270;
+  cursor: default;
+  border-color: #D0D5DD;
+}
+
+.form-input:read-only:focus {
+  outline: none;
+  border-color: #D0D5DD;
+}
+
+
 /* ── Policies sidebar ── */
 .policies-header {
   display: flex;
