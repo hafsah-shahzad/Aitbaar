@@ -264,16 +264,31 @@ router.post("/", async function(req, res) {
     if (session && session.state === "awaiting_rules_acceptance") {
       if (isYes(transcript)) {
         await markRulesAccepted(fromNumber, session.pending_committee_id);
-        var com2 = (await supabase.from("committees").select("name,monthly_amount").eq("id", session.pending_committee_id).single()).data;
-        var updatedM = await getMembershipsByPhone(fromNumber);
-        var regMsg = getMessage("registrationComplete", sessLang, { name: session.pending_member_name || "Member", committee: (com2 && com2.name) || "Committee", amount: (com2 && com2.monthly_amount) || 0 });
-        if (updatedM.length > 1) { regMsg += "\n\n" + getMessage("multipleMemberships", sessLang, { count: updatedM.length, list: buildCommitteeList(updatedM), committee: (com2 && com2.name) || "Committee" }); }
+        const com2 = (await supabase
+          .from("committees")
+          .select("name, monthly_amount, duration_months")
+          .eq("id", session.pending_committee_id)
+          .single()).data;
+
+        const updatedM = await getMembershipsByPhone(fromNumber);
+        let regMsg = getMessage("registrationComplete", sessLang, {
+          name: session.pending_member_name || "Member",
+          committee: (com2 && com2.name) || "Committee",
+          amount: (com2 && com2.monthly_amount) || 0,
+          phone: fromNumber,
+          duration: (com2 && com2.duration_months) || "?",
+        });
+        if (updatedM.length > 1) {
+          regMsg += "\n\n" + getMessage("multipleMemberships", sessLang, { count: updatedM.length, list: buildCommitteeList(updatedM), committee: (com2 && com2.name) || "Committee" });
+        }
         await clearSession(fromNumber);
         await reply(fromNumber, regMsg, isVoiceMessage);
       } else if (isNo(transcript)) {
         await clearSession(fromNumber);
         await reply(fromNumber, sessLang === "urdu" ? "رجسٹریشن منسوخ۔" : sessLang === "english" ? "Registration cancelled." : "Registration cancel ho gayi.", isVoiceMessage);
-      } else { await reply(fromNumber, getMessage("rulesAcceptancePrompt", sessLang), isVoiceMessage); }
+      } else {
+        await reply(fromNumber, getMessage("rulesAcceptancePrompt", sessLang), isVoiceMessage);
+      }
       return res.sendStatus(200);
     }
 
