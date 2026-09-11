@@ -28,7 +28,7 @@
     "node-cron": "^4.6.0",
     "node-edge-tts": "^1.2.10",
     "nodemailer": "^9.0.5",
-    "openai": "^7.12.1",
+    "openai": "^7.15.0",
     "puppeteer": "^25.10.0",
     "uuid": "^14.0.1"
   }
