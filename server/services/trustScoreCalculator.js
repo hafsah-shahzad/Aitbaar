@@ -1,81 +1,81 @@
 const supabase = require("../config/supabaseClient");
+const { getDueDateForCycle } = require("./paymentService");
+
+function pointsForCycle(record) {
+  if (!record) return { points: 0, max: 4, resolved: true }; // missed entirely
+  if (record.status === "rejected") return { points: 0, max: 4, resolved: true };
+  if (record.status === "pending") return { points: 0, max: 0, resolved: false }; // not counted yet
+  if (record.status === "confirmed") {
+    if (!record.is_late) return { points: 4, max: 4, resolved: true };
+    const daysLate = record.days_late || 1;
+    const points = daysLate <= 2 ? 3 : daysLate <= 5 ? 2 : 1;
+    return { points, max: 4, resolved: true };
+  }
+  return { points: 0, max: 4, resolved: true };
+}
 
 async function recalculateTrustScore(memberId, committeeId) {
-  const { data: payments, error: payErr } = await supabase
-    .from("payment_records")
-    .select("id, status, month, is_late, days_late, created_at")
-    .eq("member_id", memberId)
-    .eq("committee_id", committeeId)
-    .order("created_at", { ascending: true });
-
-  if (payErr) {
-    console.error("[TRUST] Error fetching payments:", payErr.message);
-    return null;
-  }
-
   const { data: committee } = await supabase
     .from("committees")
     .select("duration_months, start_date")
     .eq("id", committeeId)
     .single();
 
-  const durationMonths = committee?.duration_months || 12;
-  const startDate = committee?.start_date ? new Date(committee.start_date) : new Date();
-  const now = new Date();
-  const monthsElapsed = Math.max(1, Math.min(
-    durationMonths,
-    (now.getFullYear() - startDate.getFullYear()) * 12 + (now.getMonth() - startDate.getMonth()) + 1
-  ));
+  if (!committee || !committee.start_date) return null;
 
-  // Deduplicate: keep the best-status record per month
+  const durationMonths = committee.duration_months || 12;
+  const today = new Date();
+
+  const { data: payments } = await supabase
+    .from("payment_records")
+    .select("month, status, is_late, days_late, created_at")
+    .eq("member_id", memberId)
+    .eq("committee_id", committeeId);
+
+  // Best record per month (confirmed > pending > rejected)
   const statusPriority = { confirmed: 3, pending: 2, rejected: 1 };
-  const monthMap = {};
+  const byMonth = {};
   for (const p of payments || []) {
-    const current = monthMap[p.month];
-    const currentPriority = current ? (statusPriority[current.status] || 0) : -1;
-    const newPriority = statusPriority[p.status] || 0;
-    if (!current || newPriority > currentPriority || (newPriority === currentPriority && new Date(p.created_at) > new Date(current.created_at))) {
-      monthMap[p.month] = p;
+    const current = byMonth[p.month];
+    if (!current || (statusPriority[p.status] || 0) > (statusPriority[current.status] || 0)) {
+      byMonth[p.month] = p;
     }
   }
-  const uniquePayments = Object.values(monthMap);
 
-  const confirmedOnTime = uniquePayments.filter((p) => p.status === "confirmed" && !p.is_late);
-  const confirmedLate = uniquePayments.filter((p) => p.status === "confirmed" && p.is_late);
-  const rejected = uniquePayments.filter((p) => p.status === "rejected");
-  const monthsWithNoPayment = Math.max(0, monthsElapsed - uniquePayments.length);
+  let pointsEarned = 0;
+  let pointsPossible = 0;
+  const resolvedCycles = []; // for streak calculation, in order
 
-  let score = 100;
+  for (let i = 0; i < durationMonths; i++) {
+    const dueDate = getDueDateForCycle(committee.start_date, i);
+    if (dueDate > today) break; // cycle hasn't happened yet — stop counting
 
-  // On-time confirmed payments: full credit, diminishing after 5
-  confirmedOnTime.forEach((_, i) => { score += i < 5 ? 4 : 2; });
+    const monthLabel = dueDate.toLocaleString("en-PK", { month: "long", year: "numeric" });
+    const record = byMonth[monthLabel];
+    const { points, max, resolved } = pointsForCycle(record);
 
-  // Late confirmed payments: reduced credit — they still paid, but reliability is lower
-  confirmedLate.forEach((p) => {
-    const penalty = Math.min(3, Math.ceil((p.days_late || 1) / 5)); // more days late = smaller bonus
-    score += Math.max(1, 3 - penalty);
-  });
+    if (!resolved) continue; // pending — don't count against or for them yet
 
-  // Rejected and missing months
-  score -= rejected.length * 15;
-  score -= monthsWithNoPayment * 8;
-
-  // Streak bonus — only ON-TIME confirmed payments count, in consecutive months
-  const sortedOnTime = [...confirmedOnTime].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-  let streak = 0, maxRecentStreak = 0;
-  for (let i = 0; i < sortedOnTime.length; i++) {
-    if (i === 0) { streak = 1; }
-    else {
-      const diff = Math.abs(
-        new Date(sortedOnTime[i - 1].created_at).getMonth() - new Date(sortedOnTime[i].created_at).getMonth()
-      );
-      streak = diff <= 1 ? streak + 1 : 1;
-    }
-    maxRecentStreak = Math.max(maxRecentStreak, streak);
+    pointsEarned += points;
+    pointsPossible += max;
+    resolvedCycles.push({ onTime: points === 4 });
   }
-  score += Math.min(10, maxRecentStreak);
 
-  score = Math.max(0, Math.min(100, Math.round(score)));
+  let score;
+  if (pointsPossible === 0) {
+    score = 100; // no resolved cycles yet — neutral, nothing to judge
+  } else {
+    score = Math.round((pointsEarned / pointsPossible) * 100);
+  }
+
+  // Streak bonus: consecutive on-time cycles, most recent first
+  let streak = 0;
+  for (let i = resolvedCycles.length - 1; i >= 0; i--) {
+    if (resolvedCycles[i].onTime) streak++;
+    else break;
+  }
+  score = Math.min(100, score + Math.min(10, streak));
+  score = Math.max(0, score);
 
   const { data: existing } = await supabase
     .from("trust_scores")
@@ -90,7 +90,7 @@ async function recalculateTrustScore(memberId, committeeId) {
     await supabase.from("trust_scores").insert([{ member_id: memberId, committee_id: committeeId, score }]);
   }
 
-  console.log(`[TRUST] Member ${memberId}: score=${score} (onTime=${confirmedOnTime.length}, late=${confirmedLate.length}, rejected=${rejected.length}, noPayment=${monthsWithNoPayment}, streak=${maxRecentStreak})`);
+  console.log(`[TRUST] Member ${memberId}: score=${score} (earned=${pointsEarned}/${pointsPossible}, streak=${streak})`);
   return score;
 }
 
