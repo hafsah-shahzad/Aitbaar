@@ -45,7 +45,7 @@ const SCAM_KEYWORDS = {
   ],
   payment_scam: [
     "payment bhejo", "paisay bhejo", "transfer karo",
-    "raam raam", "jaldi paisay bhejo",
+    "jaldi paisay bhejo",
     "account details", "bank details", "account number",
     "iban", "wallet address",
   ],
