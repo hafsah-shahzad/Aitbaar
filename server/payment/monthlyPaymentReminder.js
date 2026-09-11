@@ -80,8 +80,8 @@ async function checkCommitteeReminders(committee) {
 }
 
 function startMonthlyPaymentReminder() {
-  // cron.schedule("0 10 * * *", async () => {  // ← production schedule
-  cron.schedule("*/2 * * * *", async () => { // testing: every 2 minutes
+  cron.schedule("0 10 * * *", async () => {  // ← production schedule
+  // cron.schedule("*/2 * * * *", async () => { // testing: every 2 minutes
     console.log("Running daily payment reminder check...");
 
     try {
