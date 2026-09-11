@@ -5,16 +5,14 @@
 // Despite the filename, this must run daily, not on a fixed calendar date,
 // because each committee's due date is different (set by its own start_date).
 //
-// Tier 1: 1 day late   — gentle nudge
-// Tier 2: 3 days late  — firmer reminder
-// Tier 3: 6 days late  — final warning, mentions trust score impact
+// Tier 1: 1-2 days late   — gentle nudge
+// Tier 3: 3-5 days late   — firmer reminder
+// Tier 6: 6+ days late    — final warning, repeats daily until paid
 
 const cron = require("node-cron");
 const supabase = require("../config/supabaseClient");
 const { sendWhatsAppMessage } = require("../services/whatsappService");
 const { getDueDateForNow } = require("../services/paymentService");
-
-const REMINDER_TIERS = [1, 3, 6]; // days late
 
 const REMINDER_MESSAGES = {
   1: (name, committee, amount) =>
@@ -22,17 +20,27 @@ const REMINDER_MESSAGES = {
   3: (name, committee, amount) =>
     `${name}, "${committee}" ki Rs ${amount} payment 3 din se pending hai. Please jaldi payment confirm karwayein taake koi masla na ho.`,
   6: (name, committee, amount) =>
-    `${name}, "${committee}" ki Rs ${amount} payment 6 din se late hai. Is se aapka trust score prabhavit ho sakta hai — please turant payment karein.`,
+    `${name}, "${committee}" ki Rs ${amount} payment ${amount ? "6 din ya us se zyada se" : "kaafi arsay se"} late hai. Is se aapka trust score prabhavit ho sakta hai — please turant payment karein.`,
 };
 
+// Picks the highest tier the member currently qualifies for.
+// Returns null if not late enough for any tier yet.
+function getTierForDaysLate(daysLate) {
+  if (daysLate >= 6) return 6;
+  if (daysLate >= 3) return 3;
+  if (daysLate >= 1) return 1;
+  return null;
+}
+
 async function checkCommitteeReminders(committee) {
-  if (!committee.start_date) return; // can't compute a due date without one
+  if (!committee.start_date) return;
 
   const now = new Date();
   const dueDate = getDueDateForNow(committee.start_date, now);
   const daysLate = Math.round((now - dueDate) / (1000 * 60 * 60 * 24));
 
-  if (!REMINDER_TIERS.includes(daysLate)) return;
+  const tier = getTierForDaysLate(daysLate);
+  if (tier === null) return;
 
   const monthLabel = now.toLocaleString("en-PK", { month: "long", year: "numeric" });
 
@@ -58,7 +66,7 @@ async function checkCommitteeReminders(committee) {
     if (existingPayment) continue;
     if (!member.phone) continue;
 
-    const message = REMINDER_MESSAGES[daysLate](member.name || "Member", committee.name, committee.monthly_amount || 0);
+    const message = REMINDER_MESSAGES[tier](member.name || "Member", committee.name, committee.monthly_amount || 0);
 
     try {
       await sendWhatsAppMessage(member.phone, message);
@@ -68,13 +76,12 @@ async function checkCommitteeReminders(committee) {
     }
   }
 
-  console.log(`[REMINDER] ${committee.name}: tier ${daysLate}-day reminder sent to ${sent} member(s)`);
+  console.log(`[REMINDER] ${committee.name}: tier ${tier} reminder sent to ${sent} member(s) (${daysLate} days late)`);
 }
 
 function startMonthlyPaymentReminder() {
-  // Runs once a day at 10 AM; each committee is checked against its own due date
-  //cron.schedule("0 10 * * *", async () => { #original time
-    cron.schedule("*/2 * * * *", async () => { //testing: every 2 minutes
+  // cron.schedule("0 10 * * *", async () => {  // ← production schedule
+  cron.schedule("*/2 * * * *", async () => { // testing: every 2 minutes
     console.log("Running daily payment reminder check...");
 
     try {
@@ -97,4 +104,22 @@ function startMonthlyPaymentReminder() {
   console.log("Payment reminder job scheduled (daily, 10:00 AM — per-committee due dates)");
 }
 
-module.exports = { startMonthlyPaymentReminder };
+async function forceCheckReminder(committeeId, tier = 1) {
+  const { data: committee } = await supabase.from("committees").select("id, name, monthly_amount, start_date").eq("id", committeeId).single();
+  if (!committee) throw new Error("Committee not found");
+
+  const { data: members } = await supabase.from("members").select("id, name, phone").eq("committee_id", committeeId);
+  const monthLabel = new Date().toLocaleString("en-PK", { month: "long", year: "numeric" });
+  let sent = 0;
+
+  for (const member of members || []) {
+    const { data: existingPayment } = await supabase.from("payment_records").select("id").eq("member_id", member.id).eq("committee_id", committeeId).eq("month", monthLabel).in("status", ["pending", "confirmed"]).maybeSingle();
+    if (existingPayment || !member.phone) continue;
+
+    await sendWhatsAppMessage(member.phone, REMINDER_MESSAGES[tier](member.name || "Member", committee.name, committee.monthly_amount || 0));
+    sent++;
+  }
+  return { sent };
+}
+
+module.exports = { startMonthlyPaymentReminder, forceCheckReminder };
