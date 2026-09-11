@@ -99,27 +99,8 @@ async function executeTool(name, args) {
     }
 
     if (name === "get_next_payment_date") {
-      const { data: committee } = await supabase.from("committees").select("name, start_date, monthly_amount").eq("id", args.committee_id).maybeSingle();
-      if (!committee || !committee.start_date) return { found: false };
-
-      const now = new Date();
-      const currentDue = getDueDateForNow(committee.start_date, now);
-      const monthLabel = now.toLocaleString("en-PK", { month: "long", year: "numeric" });
-
-      const { data: existingPayment } = await supabase.from("payment_records").select("id, status").eq("member_id", args.member_id).eq("committee_id", args.committee_id).eq("month", monthLabel).in("status", ["pending", "confirmed"]).maybeSingle();
-
-      const dueDate = existingPayment ? getDueDateForNow(committee.start_date, addMonths(now, 1)) : currentDue;
-      const daysUntil = Math.round((dueDate - now) / (1000 * 60 * 60 * 24));
-
-      return {
-        found: true,
-        committee_name: committee.name,
-        monthly_amount: committee.monthly_amount,
-        current_month_already_logged: !!existingPayment,
-        due_date: dueDate.toISOString().slice(0, 10),
-        days_until_due: daysUntil,
-        is_overdue: daysUntil < 0,
-      };
+      const { getNextPaymentInfo } = require("./paymentService");
+      return await getNextPaymentInfo(args.member_id, args.committee_id);
     }
 
     if (name === "get_committee_info") {
