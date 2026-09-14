@@ -13,6 +13,7 @@ const cron = require("node-cron");
 const supabase = require("../config/supabaseClient");
 const { sendWhatsAppMessage } = require("../services/whatsappService");
 const { getDueDateForNow } = require("../services/paymentService");
+const { recalculateTrustScore } = require("../services/trustScoreCalculator");
 
 const REMINDER_MESSAGES = {
   1: (name, committee, amount) =>
@@ -50,6 +51,12 @@ async function checkCommitteeReminders(committee) {
     .eq("committee_id", committee.id);
 
   if (!members || members.length === 0) return;
+
+  for (const member of members) {
+    await recalculateTrustScore(member.id, committee.id).catch((err) =>
+      console.error(`[TRUST] Recalc failed for member ${member.id}:`, err.message)
+    );
+  }
 
   let sent = 0;
 
