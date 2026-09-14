@@ -1,15 +1,26 @@
 const supabase = require("../config/supabaseClient");
 const { getDueDateForCycle } = require("./paymentService");
 
+// How much of a month's points are lost, based on how many days late
+// the payment was. Grace period: 0-6 days late costs nothing.
+function deductionFraction(daysLate) {
+  if (daysLate <= 6) return 0;      // grace period — full credit
+  if (daysLate <= 9) return 0.05;   // 7-9 days late
+  if (daysLate <= 14) return 0.10;  // 10-14 days late
+  if (daysLate <= 19) return 0.30;  // 15-19 days late
+  if (daysLate <= 24) return 0.40;  // 20-24 days late
+  return 0.50;                      // 25+ days late, but still paid
+}
+
 function pointsForCycle(record, monthlyValue) {
-  if (!record) return 0; // missed entirely
+  if (!record) return 0;              // never paid at all this cycle — full loss
   if (record.status === "rejected") return 0;
   if (record.status === "pending") return null; // not resolved yet — skip
   if (record.status === "confirmed") {
     if (!record.is_late) return monthlyValue;
-    const daysLate = record.days_late || 1;
-    const reduction = Math.min(monthlyValue - 1, Math.ceil(daysLate / 3));
-    return Math.max(0, Math.round((monthlyValue - reduction) * 10) / 10);
+    const daysLate = record.days_late || 0;
+    const fraction = deductionFraction(daysLate);
+    return Math.round(monthlyValue * (1 - fraction) * 10) / 10;
   }
   return 0;
 }
@@ -21,14 +32,16 @@ async function recalculateTrustScore(memberId, committeeId) {
     .eq("id", committeeId)
     .single();
 
-  if (!committee || !committee.start_date) return null;
+  if (!committee || !committee.start_date) {
+    console.warn(`[TRUST] Skipped — committee ${committeeId} has no start_date set.`);
+    return null;
+  }
 
   const durationMonths = committee.duration_months || 12;
   const monthlyValue = 100 / durationMonths;
   const today = new Date();
 
-  // If the member's very first due date hasn't arrived yet, there's
-  // nothing to score — stay at a neutral default rather than 0.
+  // First due date hasn't arrived yet — nothing to judge, stay neutral.
   const firstDue = getDueDateForCycle(committee.start_date, 0);
   if (firstDue > today) {
     await upsertScore(memberId, committeeId, 100);
@@ -56,7 +69,7 @@ async function recalculateTrustScore(memberId, committeeId) {
 
   for (let i = 0; i < durationMonths; i++) {
     const dueDate = getDueDateForCycle(committee.start_date, i);
-    if (dueDate > today) break;
+    if (dueDate > today) break; // this cycle hasn't come due yet
 
     const monthLabel = dueDate.toLocaleString("en-PK", { month: "long", year: "numeric" });
     const points = pointsForCycle(byMonth[monthLabel], monthlyValue);
@@ -66,7 +79,7 @@ async function recalculateTrustScore(memberId, committeeId) {
     cycleResults.push({ onTime: points >= monthlyValue - 0.05 });
   }
 
-  score = Math.max(0, Math.min(100, Math.round(score)));
+  score = Math.max(0, Math.min(100, Math.round(score * 10) / 10));
 
   for (let i = cycleResults.length - 1; i >= 0; i--) {
     if (cycleResults[i].onTime) streak++;
