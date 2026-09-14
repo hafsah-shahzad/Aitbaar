@@ -29,12 +29,16 @@ const POLICIES_UR = [
   { id: 10, title: "فراڈ الرٹس", text: "اعتبار کی طرف سے دیا گیا فراڈ الرٹ صرف ایک انتباہ ہوگا، کسی ممبر پر حتمی طور پر فراڈ کا الزام نہیں ہوگا۔ مشکوک درخواست کی صورت میں ادائیگی کرنے سے پہلے معلومات کی تصدیق کرنا ضروری ہوگا۔" }
 ];
 
-
+const CITIES = [
+  "Karachi", "Lahore", "Islamabad", "Rawalpindi", "Faisalabad", "Multan",
+  "Peshawar", "Quetta", "Sialkot", "Gujranwala", "Hyderabad", "Bahawalpur",
+  "Sargodha", "Sukkur", "Abbottabad", "Mardan", "Other",
+];
 export default function RegistrationModal({ isOpen, onClose, existingOrganizer }) {
   const [formData, setFormData] = useState({
   name: existingOrganizer?.name || "", email: existingOrganizer?.email || "", phone: existingOrganizer?.phone || "", password: "",
     committeeName: "", monthlyAmount: "", totalMembers: "",
-    durationMonths: "", startDate: "",
+     durationMonths: "", startDate: "", city: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -58,7 +62,7 @@ export default function RegistrationModal({ isOpen, onClose, existingOrganizer }
         ? { organizer: existingOrganizer }
         : await registerOrganizer({ name: formData.name, email: formData.email, phone: formData.phone, password: formData.password });
       if (!registerData || !registerData.organizer) throw new Error("Registration succeeded but no organizer data was returned.");
-      const committeeData = await createCommittee({ organizerId: registerData.organizer.id, name: formData.committeeName, monthlyAmount: formData.monthlyAmount, totalMembers: formData.totalMembers, durationMonths: formData.durationMonths, startDate: formData.startDate });
+     const committeeData = await createCommittee({ organizerId: registerData.organizer.id, name: formData.committeeName, monthlyAmount: formData.monthlyAmount, totalMembers: formData.totalMembers, durationMonths: formData.durationMonths, startDate: formData.startDate, city: formData.city });
       if (!committeeData || !committeeData.committee) throw new Error("Committee creation succeeded but no committee data was returned.");
       setCommitteeCode(committeeData.committee.code);
       setCommitteeId(committeeData.committee.id);
@@ -85,7 +89,6 @@ export default function RegistrationModal({ isOpen, onClose, existingOrganizer }
   }
 
   function handleClose() {
-    // setFormData({ name: "", email: "", phone: "", password: "", committeeName: "", monthlyAmount: "", totalMembers: "", durationMonths: "", startDate: "" });
     setCommitteeCode(null); setCommitteeId(null); setError(""); setTermsAccepted(false); setPoliciesLang("en"); onClose();
   }
 
@@ -111,9 +114,37 @@ export default function RegistrationModal({ isOpen, onClose, existingOrganizer }
             <p className="modal-subtitle">Fill in your details and committee details.</p>
             <form onSubmit={handleSubmit} className="form-body">
               <p className="form-section-label">Your details</p>
-                        <input required name="name" placeholder="Full name" className="form-input" value={formData.name} onChange={handleChange} disabled={!!existingOrganizer} readOnly />
-              <input required name="email" type="email" placeholder="Email address" className="form-input" value={formData.email} onChange={handleChange} disabled={!!existingOrganizer} readOnly />
-              <input required name="phone" placeholder="Phone number" className="form-input" value={formData.phone} onChange={handleChange} disabled={!!existingOrganizer} readOnly />
+<input
+  required
+  name="name"
+  placeholder="Full name"
+  className="form-input"
+  value={formData.name}
+  onChange={handleChange}
+  disabled={!!existingOrganizer}
+  readOnly={!!existingOrganizer}
+/>
+<input
+  required
+  name="email"
+  type="email"
+  placeholder="Email address"
+  className="form-input"
+  value={formData.email}
+  onChange={handleChange}
+  disabled={!!existingOrganizer}
+  readOnly={!!existingOrganizer}
+/>
+<input
+  required
+  name="phone"
+  placeholder="Phone number"
+  className="form-input"
+  value={formData.phone}
+  onChange={handleChange}
+  disabled={!!existingOrganizer}
+  readOnly={!!existingOrganizer}
+/>
               <input required name="password" type="password" placeholder="Create a password" className="form-input" value={formData.password} onChange={handleChange} />
               <p className="form-section-label" style={{paddingTop:"0.75rem"}}>Committee details</p>
               <input required name="committeeName" placeholder="Committee name" className="form-input" value={formData.committeeName} onChange={handleChange} />
@@ -128,6 +159,10 @@ export default function RegistrationModal({ isOpen, onClose, existingOrganizer }
                   <input required name="startDate" type="date" className="form-input" value={formData.startDate} onChange={handleChange} />
                 </div>
               </div>
+                <select name="city" className={"form-input form-select" + (formData.city ? " has-value" : "")} value={formData.city} onChange={handleChange}>
+                <option value="">City (optional)</option>
+                {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
               {error && <p className="form-error">{error}</p>}
               <button type="submit" disabled={loading || !termsAccepted} className="form-submit">{loading ? "Creating..." : "Create committee"}</button>
             </form>

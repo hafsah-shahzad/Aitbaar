@@ -4,6 +4,7 @@ const cors = require("cors");
 const supabase = require("./config/supabaseClient");
 const organizerRoutes = require("./routes/organizerRoutes");
 const committeeRoutes = require("./routes/committeeRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 const whatsappRoutes = require("./routes/whatsappRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
@@ -82,6 +83,7 @@ app.use("/api/priority", priorityRoutes);
 app.use("/api/scam", scamShieldRoutes);
 app.use("/api/member-rules", memberRulesRoutes);
 app.use("/webhook", whatsappRoutes);
+app.use("/api/admin", adminRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

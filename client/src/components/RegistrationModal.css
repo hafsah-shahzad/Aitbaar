@@ -69,7 +69,11 @@
 .form-submit {
   @apply w-full mt-4 px-6 py-3 rounded-lg bg-[#1E3A5F] text-white font-medium hover:bg-[#2E5384] transition disabled:opacity-60;
 }
-
+/* City dropdown — match input styling, neutral placeholder color */
+.form-select.form-select:invalid,
+select.form-select { color: #5C6270; }
+select.form-select.has-value { color: #1A1D23; }
+select.form-select:focus { border-color: #1E3A5F; outline: none; }
 /* Read-only organizer fields (pre-filled, non-editable) */
 .form-input:read-only {
   background: #F0F1F3;

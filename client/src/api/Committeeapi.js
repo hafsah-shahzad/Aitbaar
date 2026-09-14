@@ -23,7 +23,7 @@ export async function loginOrganizer({ email, password }) {
 }
 
 export async function createCommittee({
-  organizerId, name, monthlyAmount, totalMembers, durationMonths, startDate,
+  organizerId, name, monthlyAmount, totalMembers, durationMonths, startDate, city,
 }) {
   const res = await fetch(`${API_BASE}/api/committee/create`, {
     method: "POST",
@@ -35,6 +35,7 @@ export async function createCommittee({
       total_members: Number(totalMembers),
       duration_months: Number(durationMonths),
       start_date: startDate,
+         city: city || null,
     }),
   });
   const data = await res.json();
