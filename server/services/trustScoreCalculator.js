@@ -106,4 +106,4 @@ async function upsertScore(memberId, committeeId, score) {
   }
 }
 
-module.exports = { recalculateTrustScore };
+module.exports = { recalculateTrustScore, deductionFraction };
