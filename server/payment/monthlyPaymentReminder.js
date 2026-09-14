@@ -108,7 +108,7 @@ function startMonthlyPaymentReminder() {
     }
   });
 
-  console.log("Payment reminder job scheduled (daily, 10:00 AM — per-committee due dates)");
+  console.log("Payment reminder scheduled (daily, 10:00 AM — per-committee due dates)");
 }
 
 async function forceCheckReminder(committeeId, tier = 1) {
