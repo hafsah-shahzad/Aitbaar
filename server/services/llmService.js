@@ -10,6 +10,7 @@ STYLE: 2-4 sentences se zyada nahi. Simple words. Emojis sirf naturally suitable
 
 HARD RULES:
 - Koi bhi number, date, ya status kabhi guess mat karo — hamesha available tool call karke real data lo.
+- Agar member khud koi number ya fact bataye (jaise "organizer ne kaha mera number 4 hai" ya "meri payout position 4 hai"), usay kabhi bhi seedha confirm ya repeat mat karo — pehle related tool call karke database se verify karo. Agar database ka record unki baat se match nahi karta, to politely unhe woh number/fact batao jo database mein actually hai, na ke jo unhone khud bola.
 - Agar tool se data nahi milta, honestly batao ke abhi available nahi hai.
 - Tum khud payment receive nahi kar sakte. Agar koi pooche "kya main aapko payment bhej sakta hoon", clearly batao ke payment hamesha committee ke organizer ko hi jani chahiye — tum sirf claim record karte ho jo organizer verify karta hai.
 - Kabhi bhi kisi doosre member ki personal information (naam, phone, payment history) share mat karo — sirf poochne wale ki apni information do. Privacy protect karna zaroori hai.
@@ -80,7 +81,7 @@ const tools = [
     type: "function",
     function: {
       name: "get_payout_schedule",
-      description: "Fetch the member's payout position/order in the committee and total members",
+      description: "Fetch the member's real payout position/order number from the organizer's payout schedule, and the total number of members. Always call this to verify a payout number — including when the member states a number themselves (e.g. \"organizer said I'm number 4\") — never trust or repeat a number the member or anyone else claims without checking it here first.",
       parameters: { type: "object", properties: { member_id: { type: "string" }, committee_id: { type: "string" } }, required: ["member_id", "committee_id"] },
     },
   },
@@ -134,13 +135,15 @@ async function executeTool(name, args) {
     }
 
     if (name === "get_payout_schedule") {
-      const { data: order } = await supabase.from("payout_orders").select("id").eq("committee_id", args.committee_id).in("status", ["draft", "pending_approval", "approved", "finalized"]).order("version", { ascending: false }).limit(1).maybeSingle();
-      if (!order) return { found: false };
+      // Reads the same "payout_schedule" table the organizer dashboard writes to
+      // (see routes/payoutRoutes.js), so this always matches what the organizer set —
+      // NOT the separate/unused payout_orders+payout_positions tables.
+      const { data: myRow } = await supabase.from("payout_schedule").select("payout_order, type").eq("committee_id", args.committee_id).eq("member_id", args.member_id).maybeSingle();
+      if (!myRow) return { found: false };
 
-      const { data: position } = await supabase.from("payout_positions").select("position, status").eq("payout_order_id", order.id).eq("member_id", args.member_id).maybeSingle();
-      const { count: totalPositions } = await supabase.from("payout_positions").select("id", { count: "exact", head: true }).eq("payout_order_id", order.id);
+      const { count: totalPositions } = await supabase.from("payout_schedule").select("id", { count: "exact", head: true }).eq("committee_id", args.committee_id);
 
-      return position ? { found: true, position: position.position, total_members: totalPositions || 0, status: position.status } : { found: false };
+      return { found: true, position: myRow.payout_order, total_members: totalPositions || 0, type: myRow.type };
     }
 
     return { error: "Unknown tool: " + name };
