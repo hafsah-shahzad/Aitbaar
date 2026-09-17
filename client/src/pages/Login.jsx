@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { loginOrganizer } from "../api/committeeApi";
 import "./Login.css";
 
-const API_BASE = "http://localhost:5001";
+const API_BASE = "http://localhost:5000";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -74,20 +74,20 @@ export default function Login() {
             <span className="login-headline-accent">with trust</span>
           </h1>
           <p className="login-tagline">
-            AI-powered payment tracking, fraud detection, and trust scores — all through WhatsApp.
+                AI-powered payment tracking, fraud detection, and trust scores all through WhatsApp.
           </p>
 
           <div className="login-trust-badges">
             <div className="login-badge">
-              <span className="login-badge-icon">🛡️</span>
+              <span className="login-badge-icon"></span>
               <span>AI Fraud Shield</span>
             </div>
             <div className="login-badge">
-              <span className="login-badge-icon">📊</span>
+              <span className="login-badge-icon"></span>
               <span>Trust Scores</span>
             </div>
             <div className="login-badge">
-              <span className="login-badge-icon">💬</span>
+              <span className="login-badge-icon"></span>
               <span>WhatsApp Bot</span>
             </div>
           </div>
@@ -160,12 +160,7 @@ export default function Login() {
 
               <p className="login-footer-text">
                 Don't have a committee yet?{" "}
-                <Link to="/" className="login-footer-link">Create one</Link>
-              </p>
-              <p className="login-footer-text" style={{ marginTop: 8 }}>
-                <Link to="/admin/login" className="login-footer-link" style={{ fontSize: "0.8rem", opacity: 0.75 }}>
-                  Platform Admin Login →
-                </Link>
+               <Link to="/" className="login-footer-link">Back to home</Link>
               </p>
             </>
           ) : (
