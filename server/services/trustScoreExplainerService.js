@@ -18,7 +18,7 @@ async function buildBreakdown(memberId, committeeId) {
     .eq("committee_id", committeeId)
     .maybeSingle();
 
-  const currentScore = trustData?.score ?? 100;
+  const currentScore = trustData?.score ?? 0;
 
   const { data: committee } = await supabase
     .from("committees")
@@ -81,7 +81,7 @@ async function buildBreakdown(memberId, committeeId) {
         const points = Math.round(monthlyValue * (1 - fraction) * 10) / 10;
         pointsEarned += points;
 
-        // A payment inside the 6-day grace period earned full points —
+        // A payment inside the 7-day grace period earned full points —
         // it must be reported as on-time, not late, to match the score.
         if (fraction === 0) {
           onTimeCount++;
@@ -148,10 +148,10 @@ async function buildBreakdown(memberId, committeeId) {
 
 async function generateExplanation(memberName, breakdown) {
   if (!breakdown.hasStarted) {
-    return `${memberName}, aapki pehli payment cycle abhi due nahi hui, is liye trust score neutral 100/100 hai. Jaise hi cycles guzrengi, score aapki payment history ke mutabiq update hoga.`;
+    return `${memberName}, aapki pehli payment cycle abhi due nahi hui, is liye trust score 0/100 se shuru hai. Jaise hi aap waqt pe payment karengi, score barhna shuru ho jayega.`;
   }
 
-  const systemPrompt = `You are a trust score explainer for Aitbaar, a committee (kameti/bisi) app in Pakistan. The score is cumulative out of 100, split evenly across the whole committee duration — it is NOT a percentage of recent behavior, so a low raw score early in a long committee is completely normal and does not by itself mean poor performance. Payments within a 6-day grace period after the due date still earn full credit and must never be described as "late". Judge the member's actual performance by their reliability among resolved cycles, not by the raw score alone. Be accurate to the numbers given. Friendly, clear, natural mix of Urdu and Roman Urdu. Professional tone, no emojis. Under 5 sentences. No markdown, no JSON.`;
+  const systemPrompt = `You are a trust score explainer for Aitbaar, a committee (kameti/bisi) app in Pakistan. The score is cumulative out of 100, split evenly across the whole committee duration — it is NOT a percentage of recent behavior, so a low raw score early in a long committee is completely normal and does not by itself mean poor performance. Payments within a 7-day grace period after the due date still earn full credit and must never be described as "late". Judge the member's actual performance by their reliability among resolved cycles, not by the raw score alone. Be accurate to the numbers given. Friendly, clear, natural mix of Urdu and Roman Urdu.when asked in english give answer in english Professional tone, no emojis. Under 5 sentences. No markdown, no JSON.`;
 
   const userPrompt = `
 MEMBER: ${memberName}
@@ -182,7 +182,7 @@ RULES:
       return `${memberName}, aapka trust score ${breakdown.currentScore}/100 hai kyunke ab tak ${breakdown.missedMonths} payment cycle miss hui hai. Har month waqt pe payment karke score barhayein.`;
     }
     if (breakdown.latePayments > 0 && breakdown.onTimePayments === 0) {
-      return `${memberName}, aapka trust score ${breakdown.currentScore}/100 hai. Aapki payment ${breakdown.avgDaysLate} din late hui thi, is liye poore points nahi mile. Agli baar 6 din ke andar payment karein.`;
+      return `${memberName}, aapka trust score ${breakdown.currentScore}/100 hai. Aapki payment ${breakdown.avgDaysLate} din late hui thi, is liye poore points nahi mile. Agli baar 7 din ke andar payment karein.`;
     }
     return `${memberName}, aapka trust score ${breakdown.currentScore}/100 hai — ${breakdown.onTimePayments} out of ${breakdown.resolvedCycles} resolved cycles waqt pe. Consistent rahein, score ${breakdown.durationMonths}-month duration ke saath barhta jayega.`;
   }
@@ -199,7 +199,7 @@ function generateTips(breakdown) {
     tips.push({ text: `${breakdown.missedMonths} cycle bilkul miss hui. Har month regular payment karein.` });
   }
   if (breakdown.latePayments > 0) {
-    tips.push({ text: `${breakdown.latePayments} payment grace period ke baad hui (avg ${breakdown.avgDaysLate} din). 6 din ke andar payment karein taake poore points milein.` });
+    tips.push({ text: `${breakdown.latePayments} payment grace period ke baad hui (avg ${breakdown.avgDaysLate} din). 7 din ke andar payment karein taake poore points milein.` });
   }
   if (breakdown.pendingPayments > 0) {
     tips.push({ text: `${breakdown.pendingPayments} payment organizer ke pending hai — follow up karein.` });
