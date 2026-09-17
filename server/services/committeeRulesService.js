@@ -162,7 +162,7 @@ function generateRules({
       id: 10,
       title: "Trust Score",
       icon: "⭐",
-      text: `Your trust score starts at 50 and goes up to 100 based on on-time payments, consistency, and committee participation. You can ask the bot "Why is my score this way?" for a full breakdown.`,
+      text: `Your trust score starts at 0 and grows month by month, up to 100, as you make on-time payments across the committee's duration. You can ask the bot "Why is my score this way?" for a full breakdown.`,
     },
     {
       id: 11,
@@ -315,7 +315,7 @@ function generateRules({
       id: 10,
       title: "ٹرسٹ اسکور",
       icon: "⭐",
-      text: `آپ کا ٹرسٹ اسکور 50 سے شروع ہوتا ہے اور 100 تک جا سکتا ہے۔ واٹ پر ادائیگی، تسلسل، اور شمولیت سے بڑھتا ہے۔ بار سے "Mera score kyun itna hai" پوچھیں۔`,
+      text: `آپ کا ٹرسٹ اسکور 0 سے شروع ہوتا ہے اور 100 تک جا سکتا ہے۔ وقت پر ادائیگی کرنے سے کمیٹی کی مدت کے دوران ہر مہینے بڑھتا ہے۔ بار سے "Mera score kyun itna hai" پوچھیں۔`,
     },
     {
       id: 11,
