@@ -2,14 +2,20 @@ const supabase = require("../config/supabaseClient");
 const { getDueDateForCycle } = require("./paymentService");
 
 // How much of a month's points are lost, based on how many days late
-// the payment was. Grace period: 0-6 days late costs nothing.
+// the payment was. Grace period: 0-7 days late (within a week) costs nothing;
+// every additional 5-day block beyond that costs another 10%.
 function deductionFraction(daysLate) {
-  if (daysLate <= 6) return 0;      // grace period — full credit
-  if (daysLate <= 9) return 0.05;   // 7-9 days late
-  if (daysLate <= 14) return 0.10;  // 10-14 days late
-  if (daysLate <= 19) return 0.30;  // 15-19 days late
-  if (daysLate <= 24) return 0.40;  // 20-24 days late
-  return 0.50;                      // 25+ days late, but still paid
+  if (daysLate <= 7) return 0;      // grace period — full credit (within 1 week)
+  if (daysLate <= 10) return 0.10;  // 8-10 days late
+  if (daysLate <= 15) return 0.20;  // 11-15 days late
+  if (daysLate <= 20) return 0.30;  // 16-20 days late
+  if (daysLate <= 25) return 0.40;  // 21-25 days late
+  if (daysLate <= 30) return 0.50;  // 26-30 days late
+  if (daysLate <= 35) return 0.60;  // 31-35 days late
+  if (daysLate <= 40) return 0.70;  // 36-40 days late
+  if (daysLate <= 45) return 0.80;  // 41-45 days late
+  if (daysLate <= 50) return 0.90;  // 46-50 days late
+  return 1.0;                       // 51+ days late — full loss
 }
 
 function pointsForCycle(record, monthlyValue) {
@@ -40,13 +46,6 @@ async function recalculateTrustScore(memberId, committeeId) {
   const durationMonths = committee.duration_months || 12;
   const monthlyValue = 100 / durationMonths;
   const today = new Date();
-
-  // First due date hasn't arrived yet — nothing to judge, stay neutral.
-  const firstDue = getDueDateForCycle(committee.start_date, 0);
-  if (firstDue > today) {
-    await upsertScore(memberId, committeeId, 100);
-    return 100;
-  }
 
   const { data: payments } = await supabase
     .from("payment_records")
