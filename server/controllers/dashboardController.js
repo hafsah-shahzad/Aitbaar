@@ -111,7 +111,7 @@ async function getDashboardData(req, res) {
       }
       return {
         ...member,
-        trust_score: scoreRecord?.score ?? 100,
+        trust_score: scoreRecord?.score ?? 0,
         paid_this_month: hasPaidThisMonth,
         total_payments_made: totalPaymentsMade,
            payout_slot: payoutSlotMap[member.id] || null,
@@ -141,7 +141,7 @@ async function getDashboardData(req, res) {
 
     const avgTrustScore = totalMembers > 0
       ? Math.round(membersWithScores.reduce((sum, m) => sum + m.trust_score, 0) / totalMembers)
-      : 100;
+      : 0;
 
     const collectionRate = totalMembers > 0
       ? Math.round((paidCount / totalMembers) * 100)
