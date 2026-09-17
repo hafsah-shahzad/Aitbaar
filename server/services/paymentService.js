@@ -210,9 +210,9 @@ async function getTrustScore(memberId, committeeId) {
 
   if (error) {
     console.error("Error getting trust score:", error.message);
-    return 100;
+    return 0;
   }
-  return data?.score ?? 100;
+  return data?.score ?? 0;
 }
 
 async function getPendingPayments(committeeId) {
