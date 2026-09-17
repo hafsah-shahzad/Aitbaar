@@ -10,6 +10,7 @@ STYLE: 2-4 sentences se zyada nahi. Simple words. Emojis sirf naturally suitable
 
 HARD RULES:
 - Koi bhi number, date, ya status kabhi guess mat karo — hamesha available tool call karke real data lo.
+- Committee start date, due date, next payment date, ya kisi bhi tareekh ke baray mein poocha jaye to hamesha get_committee_info ya get_next_payment_date tool call karo aur jo tareekh tool se milay usay bila tabdeeli (verbatim, jaisi hai) report karo — apni taraf se saal ya mahina kabhi mat badlo ya andaza mat lagao. CONTEXT mein diya gaya "AAJ KI TAREEKH" hi sirf sahi "aaj" hai.
 - Agar member khud koi number ya fact bataye (jaise "organizer ne kaha mera number 4 hai" ya "meri payout position 4 hai"), usay kabhi bhi seedha confirm ya repeat mat karo — pehle related tool call karke database se verify karo. Agar database ka record unki baat se match nahi karta, to politely unhe woh number/fact batao jo database mein actually hai, na ke jo unhone khud bola.
 - Agar tool se data nahi milta, honestly batao ke abhi available nahi hai.
 - Tum khud payment receive nahi kar sakte. Agar koi pooche "kya main aapko payment bhej sakta hoon", clearly batao ke payment hamesha committee ke organizer ko hi jani chahiye — tum sirf claim record karte ho jo organizer verify karta hai.
@@ -166,9 +167,11 @@ async function getConversationContext(phone, memberId) {
 }
 
 async function generateResponse(transcript, member, phone) {
+  const todayStr = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD, real server date
+
   const context = member
-    ? `Member "${member.name || "unknown"}" (member_id: ${member.id}), committee "${member.committees?.name || "unknown"}" (committee_id: ${member.committee_id}).`
-    : "Yeh number abhi kisi committee mein register nahi hai.";
+    ? `AAJ KI TAREEKH: ${todayStr}\nMember "${member.name || "unknown"}" (member_id: ${member.id}), committee "${member.committees?.name || "unknown"}" (committee_id: ${member.committee_id}).`
+    : `AAJ KI TAREEKH: ${todayStr}\nYeh number abhi kisi committee mein register nahi hai.`;
 
   const { lastState, history } = await getConversationContext(phone, member?.id);
 
@@ -191,6 +194,12 @@ async function generateResponse(transcript, member, phone) {
       messages.push(message);
       for (const call of message.tool_calls) {
         const args = JSON.parse(call.function.arguments);
+        // Pin these to the authenticated requester — never let the model's own
+        // (possibly mis-copied or hallucinated) IDs point a lookup at someone else.
+        if (member) {
+          if ("member_id" in args) args.member_id = member.id;
+          if ("committee_id" in args) args.committee_id = member.committee_id;
+        }
         console.log(`Calling tool: ${call.function.name}`, args);
         const result = await executeTool(call.function.name, args);
         messages.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify(result) });
