@@ -7,7 +7,7 @@ const client = new OpenAI({
 
 const MODELS = {
   PLUS: "qwen-plus",
-  FLASH: "qwen-flash", // faster/cheaper — used for intent classification
+  FLASH: "qwen-flash",
 };
 
 async function chatCompletion(messages, options = {}) {
@@ -17,10 +17,8 @@ async function chatCompletion(messages, options = {}) {
     max_tokens: options.maxTokens || 300,
     temperature: options.temperature,
     tools: options.tools,
-    tool_choice: options.tools ? "auto" : undefined,
-    response_format: options.jsonMode
-      ? { type: "json_object" }
-      : undefined,
+    tool_choice: options.tools ? (options.tool_choice || "auto") : undefined,
+    response_format: options.jsonMode ? { type: "json_object" } : undefined,
   });
 
   return response.choices[0].message;
