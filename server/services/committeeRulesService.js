@@ -113,7 +113,7 @@ function generateRules({
     {
       id: 2,
       title: "Payment Deadline",
-      icon: "📅",
+      icon: "",
       text: `All payments must be made on or before the 5th of every month. Payments received after the 5th will be marked as late and may incur a penalty.`,
     },
     {
@@ -266,7 +266,7 @@ function generateRules({
     {
       id: 2,
       title: "ادائیگی کی آخری تاریخ",
-      icon: "📅",
+      icon: "",
       text: `تمام ادائیگیاں ہر ماہ 5 تاریخ تک ہونی چاہئیں۔ 5 تاریخ کے بعد ادائیگی "دیر سے" مانی جائے گی۔`,
     },
     {
