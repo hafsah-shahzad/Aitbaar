@@ -195,6 +195,12 @@ const MESSAGES = {
 
   },
 
+  pendingPaymentRolledForward: {
+    urdu: "{name}، Rs {amount} — آپ کی {previousMonth} کی ادائیگی پہلے سے ریکارڈ میں موجود ہے، اس لیے یہ ادائیگی {month} کے لیے ریکارڈ کی گئی ہے۔ آرگنائزر تصدیق کرے گا تو اسٹیٹس کنفرم ہو جائے گا۔",
+    roman_urdu: "{name}, Rs {amount} — aapki {previousMonth} ki payment pehle se record mein maujood hai, is liye yeh payment {month} ke liye record ki gayi hai. Organizer confirm karega to status confirm ho jayega.",
+    english: "{name}, Rs {amount} — your payment for {previousMonth} is already on record, so this payment has been logged for {month} instead. It will be confirmed once the organizer verifies it."
+  },
+
   askPaymentClaimClarification: {
     urdu: "کیا آپ یہ کہہ رہے ہیں کہ آپ نے \"{committee}\" کی {month} کی ادائیگی کر دی ہے، یا پوچھ رہے ہیں کہ کیا آپ کی ادائیگی ہو چکی ہے؟\n\n1. جی ہاں، میں نے ادائیگی کر دی ہے\n2. کیا میری ادائیگی ہو چکی ہے؟ (سٹیٹس چیک کرنا ہے)\n\nبراہِ کرم 1 یا 2 لکھیں۔",
     roman_urdu: "Kya aap yeh keh rahe hain ke aapne \"{committee}\" ki {month} ki payment kar di hai, ya pooch rahe hain ke kya aapki payment ho chuki hai?\n\n1. Ji haan, maine payment kar di hai\n2. Kya meri payment ho chuki hai? (status check karna hai)\n\nBaraye mehrbani 1 ya 2 likhein.",
