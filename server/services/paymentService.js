@@ -42,6 +42,48 @@ function getDueDateForCycle(startDate, cycleIndex) {
   return new Date(targetYear, targetMonth, day);
 }
 
+// Finds which cycle (month) a new payment claim should actually count
+// toward — the first cycle that doesn't already have a pending/confirmed
+// claim. This is what makes a 2nd payment in the same month roll forward
+// to next month instead of creating a duplicate record for the same month.
+async function findTargetCycle(memberId, committeeId) {
+  const { data: committee } = await supabase
+    .from("committees")
+    .select("start_date, duration_months, monthly_amount")
+    .eq("id", committeeId)
+    .maybeSingle();
+
+  if (!committee || !committee.start_date) return null;
+
+  const { data: payments } = await supabase
+    .from("payment_records")
+    .select("month, status")
+    .eq("member_id", memberId)
+    .eq("committee_id", committeeId)
+    .in("status", ["pending", "confirmed"]);
+
+  const claimedMonths = new Set((payments || []).map((p) => p.month));
+  const durationMonths = committee.duration_months || 12;
+
+  for (let i = 0; i < durationMonths; i++) {
+    const dueDate = getDueDateForCycle(committee.start_date, i);
+    const monthLabel = dueDate.toLocaleString("en-PK", { month: "long", year: "numeric" });
+    if (!claimedMonths.has(monthLabel)) {
+      return { monthLabel, dueDate, monthlyAmount: committee.monthly_amount };
+    }
+  }
+
+  // Every cycle already claimed — fall back to the last one rather than crash
+  const lastIndex = durationMonths - 1;
+  const dueDate = getDueDateForCycle(committee.start_date, lastIndex);
+  return {
+    monthLabel: dueDate.toLocaleString("en-PK", { month: "long", year: "numeric" }),
+    dueDate,
+    monthlyAmount: committee.monthly_amount,
+    allCyclesClaimed: true,
+  };
+}
+
 // Finds the member's next unpaid cycle — walking forward from the
 // committee's own start date, not from "today". Returns whether that
 // cycle is upcoming or already overdue.
@@ -88,35 +130,44 @@ async function getNextPaymentInfo(memberId, committeeId) {
 
 async function savePaymentRecord({ memberId, committeeId, amount }) {
   const now = new Date();
-  const month = now.toLocaleString("en-PK", { month: "long", year: "numeric" });
 
-  // Fetch committee once — needed for both the fallback amount and the due date
   let finalAmount = amount;
-  let dueDate = null;
+  let month;
+  let dueDateStr = null;
   let isLate = false;
   let daysLate = 0;
+  let rolledForward = false;
+  let previousCycleMonth = null;
 
   try {
-    const { data: committee } = await supabase
-      .from("committees")
-      .select("monthly_amount, start_date")
-      .eq("id", committeeId)
-      .maybeSingle();
+    const target = await findTargetCycle(memberId, committeeId);
 
-    if (committee) {
-      if (!finalAmount || finalAmount <= 0) {
-        finalAmount = committee.monthly_amount || 0;
+    if (target) {
+      month = target.monthLabel;
+      dueDateStr = target.dueDate.toISOString().slice(0, 10);
+      const diff = daysBetween(target.dueDate, now);
+      isLate = diff > 0;
+      daysLate = Math.max(0, diff);
+      if (!finalAmount || finalAmount <= 0) finalAmount = target.monthlyAmount || 0;
+
+      // Check whether this differs from what "today's natural month" would
+      // be — if so, the natural month was already claimed, and this
+      // payment is being rolled forward to the next unclaimed cycle.
+      const { data: committee } = await supabase.from("committees").select("start_date").eq("id", committeeId).maybeSingle();
+      if (committee && committee.start_date) {
+        const naturalDue = getDueDateForNow(committee.start_date, now);
+        const naturalMonth = naturalDue.toLocaleString("en-PK", { month: "long", year: "numeric" });
+        if (naturalMonth !== target.monthLabel) {
+          rolledForward = true;
+          previousCycleMonth = naturalMonth;
+        }
       }
-      if (committee.start_date) {
-        const due = getDueDateForNow(committee.start_date, now);
-        dueDate = due.toISOString().slice(0, 10);
-        const diff = daysBetween(due, now);
-        isLate = diff > 0;
-        daysLate = Math.max(0, diff);
-      }
+    } else {
+      month = now.toLocaleString("en-PK", { month: "long", year: "numeric" });
     }
   } catch (e) {
-    console.error("[PAY] Failed to fetch committee for due-date calc:", e.message);
+    console.error("[PAY] Failed to determine target cycle:", e.message);
+    month = now.toLocaleString("en-PK", { month: "long", year: "numeric" });
   }
 
   const { data, error } = await supabase
@@ -127,7 +178,7 @@ async function savePaymentRecord({ memberId, committeeId, amount }) {
       amount: finalAmount || 0,
       month,
       status: "pending",
-      due_date: dueDate,
+      due_date: dueDateStr,
       is_late: isLate,
       days_late: daysLate,
     }])
@@ -139,8 +190,8 @@ async function savePaymentRecord({ memberId, committeeId, amount }) {
     return null;
   }
 
-  console.log(`Payment claim saved as pending (${isLate ? daysLate + " days late" : "on time"}):`, data);
-  return data;
+  console.log(`Payment claim saved as pending for ${month} (${isLate ? daysLate + " days late" : "on time"})${rolledForward ? " [rolled forward from " + previousCycleMonth + "]" : ""}:`, data);
+  return { ...data, rolledForward, previousCycleMonth };
 }
 
 async function verifyPayment(paymentId) {
@@ -239,4 +290,5 @@ module.exports = {
   getDueDateForNow,
   getDueDateForCycle,
   getNextPaymentInfo,
+  findTargetCycle,
 };
