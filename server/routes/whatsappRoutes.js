@@ -258,7 +258,18 @@ router.post("/", async function(req, res) {
         const dAmount = savedRecord ? savedRecord.amount : ((tMem.committees && tMem.committees.monthly_amount) || 0);
         const dMonth = savedRecord ? savedRecord.month : monthName;
         await clearSession(fromNumber);
-        await reply(fromNumber, getMessage("pendingPayment", sessLang, { amount: dAmount, month: dMonth, committee: (tMem.committees && tMem.committees.name) || "Committee" }), isVoiceMessage);
+
+        if (savedRecord && savedRecord.rolledForward) {
+          await reply(fromNumber, getMessage("pendingPaymentRolledForward", sessLang, {
+            name: tMem.name || "Member",
+            amount: dAmount,
+            previousMonth: savedRecord.previousCycleMonth,
+            month: dMonth,
+          }), isVoiceMessage);
+        } else {
+          await reply(fromNumber, getMessage("pendingPayment", sessLang, { amount: dAmount, month: dMonth, committee: (tMem.committees && tMem.committees.name) || "Committee" }), isVoiceMessage);
+        }
+
         const org = await supabase.from("organizers").select("phone").eq("id", tMem.committees && tMem.committees.organizer_id).maybeSingle();
         if (org.data && org.data.phone) { sendWhatsAppMessage(org.data.phone, "[Aitbaar] " + (tMem.name || fromNumber) + " ne Rs " + dAmount + " payment claim ki (" + dMonth + ").").catch(() => {}); }
         return res.sendStatus(200);
