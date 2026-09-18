@@ -6,7 +6,9 @@ const { createAdminToken } = require("../utils/adminToken");
 const {
   getPlatformStats,
   getOrganizers,
+  getCommitteePayments,
   setOrganizerStatus,
+  getCommitteeOverview,
   getCommittees,
   getAnomalies,
   reviewAnomaly,
@@ -53,6 +55,8 @@ router.get("/stats", getPlatformStats);
 router.get("/organizers", getOrganizers);
 router.patch("/organizers/:id/status", setOrganizerStatus);
 router.get("/committees", getCommittees);
+router.get("/committees/:id/overview", getCommitteeOverview);
+router.get("/committees/:id/payments", getCommitteePayments);
 router.get("/anomalies", getAnomalies);
 router.patch("/anomalies/:id", reviewAnomaly);
 router.get("/system", getSystemHealth);

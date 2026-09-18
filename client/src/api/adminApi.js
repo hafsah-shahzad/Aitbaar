@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:5001";
+const API_BASE = "http://localhost:5000";
 
 function authHeaders() {
   const token = localStorage.getItem("aitbaar_admin_token");
@@ -36,6 +36,8 @@ export const setOrganizerStatus = (id, status) =>
   request(`/api/admin/organizers/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) });
 export const getAdminCommittees = () => request("/api/admin/committees");
 export const getAdminAnomalies = () => request("/api/admin/anomalies");
+export const getCommitteePayments = (id) => request(`/api/admin/committees/${id}/payments`);
+export const getCommitteeOverview = (id) => request(`/api/admin/committees/${id}/overview`);
 export const reviewAnomaly = (id, status) =>
   request(`/api/admin/anomalies/${id}`, { method: "PATCH", body: JSON.stringify({ status }) });
 export const getSystemHealth = () => request("/api/admin/system");

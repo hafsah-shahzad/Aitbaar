@@ -264,6 +264,227 @@ async function getCommittees(req, res) {
     res.status(500).json({ success: false, error: err.message });
   }
 }
+// GET /api/admin/committees/:id/overview — FULL committee-scoped overview
+// Mirrors the platform stats shape so the whole Overview section can render
+// from this single payload: KPIs, growth, payment trend, trust distribution,
+// plus a member roster with per-member trust and paid amounts.
+async function getCommitteeOverview(req, res) {
+  try {
+    const { id } = req.params;
+
+    const BASE_COLS = "id, code, name, monthly_amount, total_members, duration_months, start_date, organizer_id, created_at";
+    let { data: committee, error: cErr } = await supabase
+      .from("committees")
+      .select(`${BASE_COLS}, city`)
+      .eq("id", id)
+      .single();
+    if (cErr && cErr.message && (cErr.message.includes("column") || cErr.message.includes("city"))) {
+      // city column not present yet (migration 014 not run) — load without it
+      ({ data: committee, error: cErr } = await supabase
+        .from("committees")
+        .select(BASE_COLS)
+        .eq("id", id)
+        .single());
+    }
+    if (cErr || !committee) return res.status(404).json({ success: false, error: "Committee not found." });
+
+    const { data: organizer } = await supabase
+      .from("organizers").select("name").eq("id", committee.organizer_id).single();
+
+    const { data: members } = await supabase
+      .from("members")
+      .select("id, name, phone, joined_at")
+      .eq("committee_id", id);
+    const memberList = members || [];
+    const memberIds = memberList.map((m) => m.id);
+
+    const EMPTY = ["00000000-0000-0000-0000-000000000000"];
+    const [paymentsRes, trustRes, anomaliesRes] = await Promise.all([
+      memberIds.length
+        ? supabase.from("payment_records").select("member_id, amount, status, month").eq("committee_id", id)
+        : Promise.resolve({ data: [] }),
+      memberIds.length
+        ? supabase.from("trust_scores").select("member_id, score").in("member_id", memberIds)
+        : Promise.resolve({ data: [] }),
+      supabase.from("anomaly_flags").select("id, severity, created_at").eq("committee_id", id),
+    ]);
+
+    const payments = paymentsRes.data || [];
+    const scoreByMember = {};
+    (trustRes.data || []).forEach((t) => { scoreByMember[t.member_id] = t.score; });
+    const anomalies = anomaliesRes.data || [];
+
+    const confirmed = payments.filter((p) => p.status === "confirmed");
+    const totalVolume = confirmed.reduce((s, p) => s + (p.amount || committee.monthly_amount || 0), 0);
+    const thisMonth = new Date().toLocaleString("en-PK", MONTH_FMT);
+    const pendingNow = payments.filter((p) => p.status === "pending" && p.month === thisMonth).length;
+
+    // Trust distribution over this committee's members (same thresholds as platform)
+    const trustDist = { high: 0, medium: 0, low: 0 };
+    let trustSum = 0;
+    memberList.forEach((m) => {
+      const s = scoreByMember[m.id] ?? 100;
+      trustSum += s;
+      if (s >= 80) trustDist.high++;
+      else if (s >= 50) trustDist.medium++;
+      else trustDist.low++;
+    });
+    const avgTrust = memberList.length ? Math.round(trustSum / memberList.length) : null;
+
+    // 6-month member-join growth + payment trend (same window keys as platform)
+    const growth = [];
+    const paymentTrend = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(1);
+      d.setMonth(d.getMonth() - i);
+      const label = d.toLocaleString("en-PK", { month: "short" });
+      const monthKey = d.toLocaleString("en-PK", MONTH_FMT);
+      const next = new Date(d);
+      next.setMonth(next.getMonth() + 1);
+      const inMonth = (dateStr) => {
+        if (!dateStr) return false;
+        const dt = new Date(dateStr);
+        return dt >= d && dt < next;
+      };
+      growth.push({
+        month: label,
+        members: memberList.filter((m) => inMonth(m.joined_at)).length,
+      });
+      paymentTrend.push({
+        month: label,
+        confirmed: payments.filter((p) => p.month === monthKey && p.status === "confirmed").length,
+        pending: payments.filter((p) => p.month === monthKey && p.status === "pending").length,
+        rejected: payments.filter((p) => p.month === monthKey && p.status === "rejected").length,
+      });
+    }
+
+    // Schedule progress (same month math as getCommittees)
+    const startDate = committee.start_date ? new Date(committee.start_date) : new Date(committee.created_at || Date.now());
+    const now = new Date();
+    const monthsElapsed = Math.max(0, Math.min(
+      committee.duration_months || 1,
+      (now.getFullYear() - startDate.getFullYear()) * 12 + (now.getMonth() - startDate.getMonth())
+    ));
+    const seats = committee.total_members || memberList.length || 0;
+    const expectedTotal = seats * (committee.monthly_amount || 0) * (committee.duration_months || 0);
+    const progressPct = expectedTotal > 0 ? Math.min(100, Math.round((totalVolume / expectedTotal) * 100)) : 0;
+
+    // Member roster: trust + paid rollup per member, highest trust first
+    const roster = memberList
+      .map((m) => {
+        const mine = payments.filter((p) => p.member_id === m.id);
+        const myConfirmed = mine.filter((p) => p.status === "confirmed");
+        return {
+          id: m.id,
+          name: m.name,
+          phone: m.phone,
+          joined_at: m.joined_at,
+          trust: scoreByMember[m.id] ?? null,
+          paid_count: myConfirmed.length,
+          paid_amount: myConfirmed.reduce((s, p) => s + (p.amount || committee.monthly_amount || 0), 0),
+          pending_count: mine.filter((p) => p.status === "pending").length,
+        };
+      })
+      .sort((a, b) => (b.trust ?? 100) - (a.trust ?? 100));
+
+    res.json({
+      success: true,
+      committee: {
+        id: committee.id,
+        code: committee.code,
+        name: committee.name,
+        city: committee.city || null,
+        monthly_amount: committee.monthly_amount,
+        total_members: committee.total_members,
+        duration_months: committee.duration_months,
+        start_date: committee.start_date,
+        organizer_name: organizer?.name || "—",
+      },
+      stats: {
+        totalMembers: memberList.length,
+        totalVolume,
+        collected: totalVolume,
+        expectedTotal,
+        progressPct,
+        monthsElapsed,
+        confirmedPayments: confirmed.length,
+        rejectedPayments: payments.filter((p) => p.status === "rejected").length,
+        pendingVerifications: pendingNow,
+        openAnomalies: anomalies.length,
+        criticalAnomalies: anomalies.filter((a) => a.severity === "high").length,
+        avgTrust,
+        trustDistribution: trustDist,
+        growth,
+        paymentTrend,
+      },
+      members: roster,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+
+// GET /api/admin/committees/:id/payments — per-committee payment trend
+// Powers the focused Payment Flow bar chart when a committee is selected.
+async function getCommitteePayments(req, res) {
+  try {
+    const { id } = req.params;
+
+    const { data: committee, error: cErr } = await supabase
+      .from("committees")
+      .select("id, code, name, monthly_amount, total_members, duration_months")
+      .eq("id", id)
+      .single();
+    if (cErr || !committee) return res.status(404).json({ success: false, error: "Committee not found." });
+
+    const { data: payments, error } = await supabase
+      .from("payment_records")
+      .select("amount, status, month")
+      .eq("committee_id", id);
+    if (error) return res.status(400).json({ success: false, error: error.message });
+
+    // Same 6-month window keys as the platform trend, so the x-axis lines up.
+    const MONTH_FMT = { month: "long", year: "numeric" };
+    const trend = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(1);
+      d.setMonth(d.getMonth() - i);
+      const label = d.toLocaleString("en-PK", { month: "short" });
+      const monthKey = d.toLocaleString("en-PK", MONTH_FMT);
+      trend.push({
+        month: label,
+        confirmed: (payments || []).filter((p) => p.month === monthKey && p.status === "confirmed").length,
+        pending: (payments || []).filter((p) => p.month === monthKey && p.status === "pending").length,
+        rejected: (payments || []).filter((p) => p.month === monthKey && p.status === "rejected").length,
+      });
+    }
+
+    const confirmed = (payments || []).filter((p) => p.status === "confirmed");
+    res.json({
+      success: true,
+      committee: {
+        id: committee.id,
+        code: committee.code,
+        name: committee.name,
+        monthly_amount: committee.monthly_amount,
+        total_members: committee.total_members,
+        duration_months: committee.duration_months,
+      },
+      totals: {
+        confirmed: confirmed.length,
+        pending: (payments || []).filter((p) => p.status === "pending").length,
+        rejected: (payments || []).filter((p) => p.status === "rejected").length,
+        collected: confirmed.reduce((s, p) => s + (p.amount || committee.monthly_amount || 0), 0),
+      },
+      trend,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+}
 
 // GET /api/admin/anomalies — platform-wide anomaly feed (with member + committee labels)
 // anomaly_flags has two FKs to members, so we resolve names manually instead of embedding.
@@ -386,6 +607,8 @@ module.exports = {
   getOrganizers,
   setOrganizerStatus,
   getCommittees,
+  getCommitteePayments,
+  getCommitteeOverview,
   getAnomalies,
   reviewAnomaly,
   getSystemHealth,
