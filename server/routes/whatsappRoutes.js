@@ -71,6 +71,28 @@ function buildCommitteeList(memberships) {
   return out.join("\n");
 }
 
+function matchCommittee(memberships, transcript) {
+  var selection = transcript.trim();
+  var index = parseInt(selection, 10) - 1;
+  if (!isNaN(index) && index >= 0 && index < memberships.length) return memberships[index];
+
+  var normalized = selection.toLowerCase();
+  return memberships.find(function(m) {
+    return (m.committees && m.committees.name || "").toLowerCase().includes(normalized);
+  }) || null;
+}
+
+function statusLabel(status, lang) {
+  const labels = {
+    confirmed: { urdu: "کنفرم", roman_urdu: "Confirmed", english: "Confirmed" },
+    pending:   { urdu: "زیرِ تصدیق", roman_urdu: "Pending (organizer verify karega)", english: "Pending (awaiting organizer)" },
+    rejected:  { urdu: "مسترد", roman_urdu: "Rejected", english: "Rejected" },
+    none:      { urdu: "ابھی کوئی ریکارڈ نہیں", roman_urdu: "Abhi koi record nahi", english: "No record found" },
+  };
+  const entry = labels[status] || labels.none;
+  return entry[lang] || entry.roman_urdu;
+}
+
 // ─────────────────────────────────────────────────────────
 // ORGANIZER AUTHORIZATION
 // Never trust a user's claim — verify via database.
@@ -205,12 +227,65 @@ router.post("/", async function(req, res) {
 
     // === SESSION STATE HANDLERS ===
     if (session && session.state === "awaiting_committee_selection_payment") {
-      var si = parseInt(transcript.trim()) - 1;
-      if (isNaN(si) || si < 0 || si >= memberships.length) { si = memberships.findIndex(function(m) { return (m.committees && m.committees.name || "").toLowerCase().includes(transcript.toLowerCase().trim()); }); }
-      if (si < 0 || si >= memberships.length) { await reply(fromNumber, getMessage("sorryNotUnderstood", sessLang), isVoiceMessage); return res.sendStatus(200); }
-      var selMem = memberships[si];
-      await upsertSession(fromNumber, { state: "awaiting_payment_amount", pending_committee_id: selMem.committee_id, pending_member_id: selMem.id, context_committee_id: selMem.committee_id, language: sessLang });
-      await reply(fromNumber, getMessage("askPaymentAmount", sessLang, { committee: (selMem.committees && selMem.committees.name) || "Committee", amount: (selMem.committees && selMem.committees.monthly_amount) || 0 }), isVoiceMessage);
+      const selMem = matchCommittee(memberships, transcript);
+      if (!selMem) { await reply(fromNumber, getMessage("sorryNotUnderstood", sessLang), isVoiceMessage); return res.sendStatus(200); }
+
+      const monthName = new Date().toLocaleString("en-PK", { month: "long", year: "numeric" });
+      await upsertSession(fromNumber, {
+        state: "awaiting_payment_claim_clarification",
+        pending_committee_id: selMem.committee_id,
+        pending_member_id: selMem.id,
+        language: sessLang,
+      });
+      await reply(fromNumber, getMessage("askPaymentClaimClarification", sessLang, {
+        committee: (selMem.committees && selMem.committees.name) || "Committee",
+        month: monthName,
+      }), isVoiceMessage);
+      return res.sendStatus(200);
+    }
+
+    if (session && session.state === "awaiting_payment_claim_clarification") {
+      const raw = transcript.trim().toLowerCase();
+      const chosePaid = ["1", "one", "haan", "ji haan", "paid", "kar di"].some((p) => raw === p || raw.includes(p));
+      const choseCheck = ["2", "two", "check", "status", "hui hai kya"].some((p) => raw === p || raw.includes(p));
+
+      const ctxId = session.pending_committee_id;
+      const tMem = memberships.find((m) => m.committee_id === ctxId) || memberships[0];
+      const monthName = new Date().toLocaleString("en-PK", { month: "long", year: "numeric" });
+
+      if (chosePaid && !choseCheck) {
+        const savedRecord = await savePaymentRecord({ memberId: tMem.id, committeeId: ctxId, amount: (tMem.committees && tMem.committees.monthly_amount) || 0 });
+        const dAmount = savedRecord ? savedRecord.amount : ((tMem.committees && tMem.committees.monthly_amount) || 0);
+        const dMonth = savedRecord ? savedRecord.month : monthName;
+        await clearSession(fromNumber);
+        await reply(fromNumber, getMessage("pendingPayment", sessLang, { amount: dAmount, month: dMonth, committee: (tMem.committees && tMem.committees.name) || "Committee" }), isVoiceMessage);
+        const org = await supabase.from("organizers").select("phone").eq("id", tMem.committees && tMem.committees.organizer_id).maybeSingle();
+        if (org.data && org.data.phone) { sendWhatsAppMessage(org.data.phone, "[Aitbaar] " + (tMem.name || fromNumber) + " ne Rs " + dAmount + " payment claim ki (" + dMonth + ").").catch(() => {}); }
+        return res.sendStatus(200);
+      }
+
+      if (choseCheck) {
+        const { data: existing } = await supabase
+          .from("payment_records")
+          .select("status, amount, month")
+          .eq("member_id", tMem.id)
+          .eq("committee_id", ctxId)
+          .eq("month", monthName)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        await clearSession(fromNumber);
+        await reply(fromNumber, getMessage("paymentStatusReport", sessLang, {
+          committee: (tMem.committees && tMem.committees.name) || "Committee",
+          month: monthName,
+          status: statusLabel(existing ? existing.status : "none", sessLang),
+          amount: existing ? existing.amount : ((tMem.committees && tMem.committees.monthly_amount) || 0),
+        }), isVoiceMessage);
+        return res.sendStatus(200);
+      }
+
+      await reply(fromNumber, getMessage("askPaymentClaimClarification", sessLang, { committee: (tMem.committees && tMem.committees.name) || "Committee", month: monthName }), isVoiceMessage);
       return res.sendStatus(200);
     }
 
@@ -395,17 +470,24 @@ router.post("/", async function(req, res) {
       var intent = await detectIntent(transcript);
       console.log("Intent:", intent);
 
-      if (intent.intent === "payment_confirmation" && intent.confidence === "high") {
+      if (intent.intent === "payment_confirmation") {
         if (memberships.length > 1) {
           await upsertSession(fromNumber, { state: "awaiting_committee_selection_payment", language: sessLang });
-          await reply(fromNumber, getMessage("memberCommitteesList", sessLang, { list: buildCommitteeList(memberships) }), isVoiceMessage);
+          await reply(fromNumber, getMessage("memberCommitteesList", sessLang, { count: memberships.length, list: buildCommitteeList(memberships) }), isVoiceMessage);
           return res.sendStatus(200);
         }
-        var sm = memberships[0];
-        await savePaymentRecord({ memberId: sm.id, committeeId: sm.committee_id, amount: intent.amount });
-        await reply(fromNumber, getMessage("pendingPayment", sessLang, { amount: intent.amount || "?", committee: (sm.committees && sm.committees.name) || "Committee" }), isVoiceMessage);
-        var org3 = await supabase.from("organizers").select("phone").eq("id", sm.committees && sm.committees.organizer_id).maybeSingle();
-        if (org3.data && org3.data.phone) { sendWhatsAppMessage(org3.data.phone, "[Aitbaar] " + (sm.name || fromNumber) + " ne payment claim ki.").catch(function() {}); }
+        const sm = memberships[0];
+        const monthName = new Date().toLocaleString("en-PK", { month: "long", year: "numeric" });
+        await upsertSession(fromNumber, {
+          state: "awaiting_payment_claim_clarification",
+          pending_committee_id: sm.committee_id,
+          pending_member_id: sm.id,
+          language: sessLang,
+        });
+        await reply(fromNumber, getMessage("askPaymentClaimClarification", sessLang, {
+          committee: (sm.committees && sm.committees.name) || "Committee",
+          month: monthName,
+        }), isVoiceMessage);
         return res.sendStatus(200);
       }
 
