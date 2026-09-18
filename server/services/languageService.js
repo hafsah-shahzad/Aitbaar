@@ -195,6 +195,18 @@ const MESSAGES = {
 
   },
 
+  askPaymentClaimClarification: {
+    urdu: "کیا آپ یہ کہہ رہے ہیں کہ آپ نے \"{committee}\" کی {month} کی ادائیگی کر دی ہے، یا پوچھ رہے ہیں کہ کیا آپ کی ادائیگی ہو چکی ہے؟\n\n1. جی ہاں، میں نے ادائیگی کر دی ہے\n2. کیا میری ادائیگی ہو چکی ہے؟ (سٹیٹس چیک کرنا ہے)\n\nبراہِ کرم 1 یا 2 لکھیں۔",
+    roman_urdu: "Kya aap yeh keh rahe hain ke aapne \"{committee}\" ki {month} ki payment kar di hai, ya pooch rahe hain ke kya aapki payment ho chuki hai?\n\n1. Ji haan, maine payment kar di hai\n2. Kya meri payment ho chuki hai? (status check karna hai)\n\nBaraye mehrbani 1 ya 2 likhein.",
+    english: "Are you telling me you've paid \"{committee}\"'s payment for {month}, or asking whether your payment has gone through?\n\n1. Yes, I've made the payment\n2. Has my payment gone through? (check status)\n\nPlease reply with 1 or 2."
+  },
+
+  paymentStatusReport: {
+    urdu: "\"{committee}\" میں {month} کی آپ کی ادائیگی کی صورتحال: {status}\nرقم: Rs {amount}",
+    roman_urdu: "\"{committee}\" mein {month} ki aapki payment ki soorat-e-haal: {status}\nRakam: Rs {amount}",
+    english: "Your payment status for {month} in \"{committee}\": {status}\nAmount: Rs {amount}"
+  },
+
   committeeFull: {
     urdu: "یہ کمیٹی بھر چکی ہے۔ آرگنائزر سے رابطہ کریں۔",
     roman_urdu: "Yeh committee bhar chuki hai. Organizer se rabta karein.",
