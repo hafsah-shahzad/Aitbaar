@@ -13,6 +13,10 @@ const FEW_SHOT = [
   { role: "assistant", content: '{"intent":"trust_score_explanation","amount":null,"confidence":"high"}' },
   { role: "user", content: "mujhe is mahina jaldi paisay chahiye, medical emergency hai" },
   { role: "assistant", content: '{"intent":"priority_request","amount":null,"confidence":"high"}' },
+  { role: "user", content: "low q hai" },
+  { role: "assistant", content: '{"intent":"trust_score_explanation","amount":null,"confidence":"high"}' },
+  { role: "user", content: "kam q hai mera score" },
+  { role: "assistant", content: '{"intent":"trust_score_explanation","amount":null,"confidence":"high"}' },
 ];
 
 async function detectIntent(transcript) {
