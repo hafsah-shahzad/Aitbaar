@@ -56,14 +56,14 @@ async function getDashboardData(req, res) {
       .select("id, member_id, status, amount, month")
       .eq("committee_id", committeeId)
       .eq("month", currentMonth);
-
-    const { data: anomalies } = await supabase
+  const { data: anomalies, error: anomaliesError } = await supabase
       .from("anomaly_flags")
       .select("*, members(phone, name)")
       .eq("committee_id", committeeId)
-      .order("created_at", { ascending: false })
-      .limit(5);
-
+      .order("created_at", { ascending: false });
+ if (anomaliesError) {
+      console.error("[dashboard] anomaly_flags query failed:", anomaliesError.message);
+    }
        const anomalyReviewerIds = [...new Set(
       (anomalies || []).filter((a) => a.reviewed_by).map((a) => a.reviewed_by)
     )];
