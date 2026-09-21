@@ -74,14 +74,16 @@ async function getPlatformStats(req, res) {
     }
 
     const trustDist = { high: 0, medium: 0, low: 0 };
-      let trustSum = 0;
+    let trustSum = 0;
     members.forEach((m) => {
       const s = scoreByMember[m.id] ?? 100;
+      trustSum += s;
       if (s >= 80) trustDist.high++;
       else if (s >= 50) trustDist.medium++;
       else trustDist.low++;
     });
     const avgTrust = members.length > 0 ? Math.round(trustSum / members.length) : null;
+
     res.json({
       success: true,
       stats: {
@@ -93,7 +95,7 @@ async function getPlatformStats(req, res) {
         pendingVerifications: pendingNow,
         openAnomalies: openAnomalies.length,
         criticalAnomalies: openAnomalies.filter((a) => a.severity === "high").length,
-     confirmedPayments: confirmed.length,
+        confirmedPayments: confirmed.length,
         rejectedPayments: payments.filter((p) => p.status === "rejected" && memberIds.has(p.member_id)).length,
         avgTrust,
         growth,
@@ -117,7 +119,7 @@ async function getOrganizers(req, res) {
 
     const { data: committees } = await supabase
       .from("committees")
-      .select("id, organizer_id, monthly_amount, duration_months, start_date");
+      .select("id, organizer_id, monthly_amount, duration_months, start_date, city");
     const { data: members } = await supabase.from("members").select("id, committee_id");
     const { data: trustScores } = await supabase.from("trust_scores").select("member_id, score, committee_id");
     const { data: payments } = await supabase
@@ -140,12 +142,16 @@ async function getOrganizers(req, res) {
       const myVolume = (payments || []).filter((p) => p.status === "confirmed" && myMembers.some((m) => m.id === p.member_id))
         .reduce((s, p) => s + (p.amount || 0), 0);
 
+      // Derive organizer's city(s) from their committees (first non-null)
+      const myCities = myCommittees.map((c) => c.city).filter(Boolean);
+
       return {
         ...o,
         committee_count: myCommittees.length,
         member_count: myMembers.length,
         avg_trust: avgTrust,
         volume: myVolume,
+        city: myCities[0] || null,
         flagged: myScores.some((t) => (t.score ?? 100) < 50),
       };
     });
@@ -201,13 +207,112 @@ async function setOrganizerStatus(req, res) {
   }
 }
 
+// GET /api/admin/organizers/:id/members — live members across ALL of this
+// organizer's committees, with per-member trust + confirmed-payment rollup.
+async function getOrganizerMembers(req, res) {
+  try {
+    const { id } = req.params;
+
+    // Organizer identity
+    const { data: organizer, error: oErr } = await supabase
+      .from("organizers")
+      .select("id, name, email, phone")
+      .eq("id", id)
+      .single();
+    if (oErr || !organizer) return res.status(404).json({ success: false, error: "Organizer not found." });
+
+    // All committees owned by this organizer
+    const { data: committees } = await supabase
+      .from("committees")
+      .select("id, code, name, monthly_amount, total_members")
+      .eq("organizer_id", id);
+    const committeeList = committees || [];
+    const committeeIds = committeeList.map((c) => c.id);
+
+    // All members in those committees (live from DB)
+    const { data: members } = committeeIds.length
+      ? await supabase
+          .from("members")
+          .select("id, name, phone, joined_at, committee_id")
+          .in("committee_id", committeeIds)
+      : { data: [] };
+    const memberList = members || [];
+    const memberIds = memberList.map((m) => m.id);
+
+    // Trust scores + confirmed payment rollups for these members
+    const EMPTY = ["00000000-0000-0000-0000-000000000000"];
+    const [trustRes, paymentsRes] = await Promise.all([
+      memberIds.length
+        ? supabase.from("trust_scores").select("member_id, score").in("member_id", memberIds)
+        : Promise.resolve({ data: [] }),
+      committeeIds.length
+        ? supabase.from("payment_records").select("member_id, committee_id, amount, status").in("committee_id", committeeIds)
+        : Promise.resolve({ data: [] }),
+    ]);
+
+    const scoreByMember = {};
+    (trustRes.data || []).forEach((t) => { scoreByMember[t.member_id] = t.score; });
+    const payments = paymentsRes.data || [];
+    const committeeById = {};
+    committeeList.forEach((c) => { committeeById[c.id] = c; });
+
+    // One roster entry per member, tagged with their committee
+    const roster = memberList
+      .map((m) => {
+        const c = committeeById[m.committee_id] || {};
+        const mine = payments.filter((p) => p.member_id === m.id);
+        const myConfirmed = mine.filter((p) => p.status === "confirmed");
+        return {
+          id: m.id,
+          name: m.name,
+          phone: m.phone,
+          joined_at: m.joined_at,
+          committee_id: m.committee_id,
+          committee_name: c.name || "—",
+          committee_code: c.code || "—",
+          trust: scoreByMember[m.id] ?? null,
+          paid_count: myConfirmed.length,
+          paid_amount: myConfirmed.reduce((s, p) => s + (p.amount || c.monthly_amount || 0), 0),
+          pending_count: mine.filter((p) => p.status === "pending").length,
+        };
+      })
+      .sort((a, b) => (b.trust ?? 100) - (a.trust ?? 100));
+
+    res.json({
+      success: true,
+      organizer: { id: organizer.id, name: organizer.name, email: organizer.email, phone: organizer.phone },
+      stats: {
+        committeeCount: committeeList.length,
+        memberCount: memberList.length,
+        avgTrust: memberList.length
+          ? Math.round(memberList.reduce((s, m) => s + (scoreByMember[m.id] ?? 100), 0) / memberList.length)
+          : null,
+        totalPaid: roster.reduce((s, m) => s + m.paid_amount, 0),
+      },
+      committees: committeeList.map((c) => ({ id: c.id, code: c.code, name: c.name })),
+      members: roster,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+}
+
 // GET /api/admin/committees — all committees with organizer + health rollup
 async function getCommittees(req, res) {
   try {
     const { data: committees, error } = await supabase
       .from("committees")
-      .select("id, code, name, monthly_amount, total_members, duration_months, start_date, organizer_id, created_at")
+      .select("id, code, name, monthly_amount, total_members, duration_months, start_date, organizer_id, created_at, city")
       .order("created_at", { ascending: false });
+    if (error && (error.message.includes("column") || error.message.includes("city"))) {
+      // city column not present yet (migration 014 not run) — load without it
+      const retry = await supabase
+        .from("committees")
+        .select("id, code, name, monthly_amount, total_members, duration_months, start_date, organizer_id, created_at")
+        .order("created_at", { ascending: false });
+      if (retry.error) return res.status(400).json({ success: false, error: retry.error.message });
+      return res.json({ success: true, committees: (retry.data || []).map((c) => ({ ...c, city: null })) });
+    }
     if (error) return res.status(400).json({ success: false, error: error.message });
 
     const { data: organizers } = await supabase.from("organizers").select("id, name");
@@ -264,6 +369,7 @@ async function getCommittees(req, res) {
     res.status(500).json({ success: false, error: err.message });
   }
 }
+
 // GET /api/admin/committees/:id/overview — FULL committee-scoped overview
 // Mirrors the platform stats shape so the whole Overview section can render
 // from this single payload: KPIs, growth, payment trend, trust distribution,
@@ -425,7 +531,6 @@ async function getCommitteeOverview(req, res) {
   }
 }
 
-
 // GET /api/admin/committees/:id/payments — per-committee payment trend
 // Powers the focused Payment Flow bar chart when a committee is selected.
 async function getCommitteePayments(req, res) {
@@ -564,6 +669,10 @@ async function reviewAnomaly(req, res) {
 }
 
 // GET /api/admin/system — jobs + service health snapshot
+// Per-committee status for the Weekly Anomaly Check dropdown is derived
+// from data that already exists: a committee with anomaly flags on record
+// has been through the weekly check → "Success"; no flags → "False".
+// No migration or extra logging needed.
 async function getSystemHealth(req, res) {
   try {
     const started = Date.now();
@@ -574,6 +683,37 @@ async function getSystemHealth(req, res) {
       .select("action, created_at")
       .order("created_at", { ascending: false })
       .limit(5);
+
+    // All committees for the dropdowns
+    const { data: committees } = await supabase
+      .from("committees")
+      .select("id, code, name");
+    const committeeList = committees || [];
+
+    // Distinct committee ids that have anomaly flags (weekly check ran on them)
+    const { data: flagged } = await supabase
+      .from("anomaly_flags")
+      .select("committee_id");
+    const checkedIds = new Set((flagged || []).map((f) => f.committee_id));
+
+    const perCommittee = {};
+    committeeList.forEach((c) => {
+      perCommittee[c.id] = {
+        code: c.code,
+        name: c.name,
+        status: checkedIds.has(c.id) ? "Success" : "False",
+      };
+    });
+
+    const jobs = [
+      {
+        name: "Weekly Anomaly Check",
+        key: "weekly_anomaly_check",
+        schedule: "Every Monday 09:00",
+        ok: true,
+        committeeStatus: perCommittee,
+      },
+    ];
 
     res.json({
       success: true,
@@ -589,11 +729,7 @@ async function getSystemHealth(req, res) {
           tts: Boolean(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON),
           stt: Boolean(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON),
         },
-        jobs: [
-          { name: "Weekly Anomaly Check", schedule: "Every Monday 09:00", ok: true },
-          { name: "Monthly Payment Reminders", schedule: "25th of each month 10:00 AM", ok: true },
-          { name: "Payment Risk Prediction", schedule: "On demand", ok: true },
-        ],
+        jobs,
         recentActivity: audits || [],
       },
     });
@@ -606,6 +742,7 @@ module.exports = {
   getPlatformStats,
   getOrganizers,
   setOrganizerStatus,
+  getOrganizerMembers,
   getCommittees,
   getCommitteePayments,
   getCommitteeOverview,

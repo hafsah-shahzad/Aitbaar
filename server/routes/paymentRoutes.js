@@ -2,11 +2,9 @@ const express = require("express");
 const router = express.Router();
 const supabase = require("../config/supabaseClient");
 const { buildReceiptData, formatForWhatsApp, generateReceiptHtml } = require("../services/paymentReceiptService");
-const { sendWhatsAppMessage } = require("../services/whatsappService");
-
-const { verifyPayment, rejectPayment } = require("../services/paymentService");
-// ↑ add this near your other requires at the top of the file, alongside
-// supabase, sendWhatsAppMessage, buildReceiptData, formatForWhatsApp, generateReceiptHtml
+const { sendWhatsAppMessage, sendWhatsAppImage } = require("../services/whatsappService");
+const { generateReceiptImage, cleanupReceiptImages } = require("../services/receiptImageService");
+const { generateReceiptPdf } = require("../services/paymentReceiptpdfService.js");
 
 // PATCH /api/payment/:id/verify
 router.patch("/:id/verify", async (req, res) => {
@@ -18,21 +16,37 @@ router.patch("/:id/verify", async (req, res) => {
   }
 
   try {
-    const result = action === "confirm" ? await verifyPayment(id) : await rejectPayment(id);
+    const newStatus = action === "confirm" ? "confirmed" : "rejected";
 
-    if (!result.success) {
-      return res.status(400).json({ success: false, error: result.error });
-    }
+    const { data: payment, error } = await supabase
+      .from("payment_records")
+      .update({ status: newStatus })
+      .eq("id", id)
+      .select("*, members(*)")
+      .single();
 
-    const payment = result.payment;
+    if (error) return res.status(400).json({ success: false, error: error.message });
 
-    // On confirm: remove any OTHER pending claims for the same member/committee/month.
-    // These are deleted, not marked "rejected" — they're duplicate self-reports of the
-    // same payment, not fraud, so they should never count against the trust score.
     if (action === "confirm" && payment.member_id) {
+      const { data: existing } = await supabase
+        .from("trust_scores")
+        .select("*")
+        .eq("member_id", payment.member_id)
+        .eq("committee_id", payment.committee_id)
+        .maybeSingle();
+
+      const newScore = Math.min(100, (existing?.score ?? 100) + 10);
+
+      if (existing) {
+        await supabase.from("trust_scores").update({ score: newScore, updated_at: new Date() }).eq("id", existing.id);
+      } else {
+        await supabase.from("trust_scores").insert([{ member_id: payment.member_id, committee_id: payment.committee_id, score: newScore }]);
+      }
+
+      // Also reject all OTHER pending payments for same member same month
       await supabase
         .from("payment_records")
-        .delete()
+        .update({ status: "rejected" })
         .eq("member_id", payment.member_id)
         .eq("committee_id", payment.committee_id)
         .eq("month", payment.month)
@@ -40,27 +54,77 @@ router.patch("/:id/verify", async (req, res) => {
         .neq("id", id);
     }
 
-    // ── Generate and send receipt after confirmation ──
-    if (action === "confirm" && payment.member_id) {
-      try {
-        const { data: memberData } = await supabase.from("members").select("phone").eq("id", payment.member_id).single();
-        const receipt = await buildReceiptData(id);
-        const receiptMsg = formatForWhatsApp(receipt);
+    if (action === "reject" && payment.member_id) {
+      const { data: existing } = await supabase
+        .from("trust_scores")
+        .select("*")
+        .eq("member_id", payment.member_id)
+        .eq("committee_id", payment.committee_id)
+        .maybeSingle();
 
-        if (memberData?.phone) {
-          sendWhatsAppMessage(memberData.phone, receiptMsg).catch((err) => {
-            console.error("Failed to send receipt to member:", err.message);
-          });
-        }
-
-        return res.json({ success: true, payment, newScore: result.newScore, receipt });
-      } catch (receiptErr) {
-        console.error("Receipt generation error (non-blocking):", receiptErr.message);
-        return res.json({ success: true, payment, newScore: result.newScore });
+      const newScore = Math.max(0, (existing?.score ?? 100) - 15);
+      if (existing) {
+        await supabase.from("trust_scores").update({ score: newScore, updated_at: new Date() }).eq("id", existing.id);
       }
     }
 
-    res.json({ success: true, payment, newScore: result.newScore });
+    // ── Generate and send receipt after confirmation ──
+    if (action === "confirm" && payment.member_id) {
+      try {
+         const finalReceipt = await buildReceiptData(id);
+        const receiptMsg = formatForWhatsApp(finalReceipt);
+
+        // Send receipt to member via WhatsApp
+        if (payment.members?.phone) {
+             const memberPhone = payment.members.phone;
+          const receiptSnapshot = finalReceipt; // 
+           generateReceiptImage(id)
+            .then(async (imgResult) => {
+              // Send the image receipt
+              await sendWhatsAppImage(
+                memberPhone,
+                imgResult.filePath,
+                `Your payment of Rs ${receiptSnapshot.monthlyAmount.toLocaleString()} for ${receiptSnapshot.committeeName} has been confirmed. Receipt ID: ${receiptSnapshot.receiptId}`
+              );
+
+              // Also send a short text confirmation after the image
+              await sendWhatsAppMessage(
+                   memberPhone,
+                `✅ Payment Confirmed for ${receiptSnapshot.month}\n
+                 Committee: ${receiptSnapshot.committeeName}\n
+                  Amount: Rs ${receiptSnapshot.monthlyAmount.toLocaleString()}\n
+                   Trust Score: ${receiptSnapshot.trustScore}/100\n Receipt ID: ${receiptSnapshot.receiptId}`
+              );
+
+              // Clean up the temp image file after sending
+              try {
+                const fs = require("fs");
+                fs.unlinkSync(imgResult.filePath);
+              } catch (e) { /* ignore cleanup errors */ }
+            })
+            .catch(async (err) => {
+              console.error("[RECIPT] Failed to send image receipt:", err.message);
+              // Fallback: send text receipt if image generation fails
+            try {
+                const fallbackReceipt = await buildReceiptData(id);
+                const receiptMsg = formatForWhatsApp(fallbackReceipt);
+                await sendWhatsAppMessage(memberPhone, receiptMsg);
+              } catch (fallbackErr) {
+                console.error("[RECIPT] Fallback text receipt also failed:", fallbackErr.message);
+              }
+            });
+        }
+       // Clean up any old receipt images
+        cleanupReceiptImages();
+        // Attach receipt data to response
+          res.json({ success: true, payment, receipt: finalReceipt });
+      } catch (receiptErr) {
+        console.error("Receipt generation error (non-blocking):", receiptErr.message);
+        res.json({ success: true, payment });
+      }
+    } else {
+      res.json({ success: true, payment });
+    }
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -76,11 +140,12 @@ router.get("/committee/:committeeId/pending", async (req, res) => {
       .from("payment_records")
       .select("*, members(name, phone)")
       .eq("committee_id", committeeId)
-      .eq("status", "pending")   // ← was "self-declared", never matched real records
+      .eq("status", "pending")
       .order("created_at", { ascending: false });
 
     if (error) return res.status(400).json({ success: false, error: error.message });
 
+    // Deduplicate: keep only the latest payment per member per month
     const seen = new Set();
     const deduplicated = (data || []).filter((p) => {
       const key = `${p.member_id}-${p.month}`;
@@ -96,27 +161,57 @@ router.get("/committee/:committeeId/pending", async (req, res) => {
 });
 
 // GET /api/payment/:id/receipt
+// Returns the payment receipt as HTML (for download/print)
 router.get("/:id/receipt", async (req, res) => {
   const { id } = req.params;
+
   try {
     const receipt = await buildReceiptData(id);
     const html = generateReceiptHtml(receipt);
+
     res.setHeader("Content-Type", "text/html");
-    res.setHeader("Content-Disposition", `attachment; filename="receipt-${receipt.receiptId}.html"`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="receipt-${receipt.receiptId}.html"`
+    );
     res.send(html);
   } catch (err) {
     console.error("Receipt download error:", err.message);
     res.status(404).json({ success: false, error: "Receipt not found" });
   }
 });
+// GET /api/payment/:id/receipt/pdf
+// Returns the payment receipt as a downloadable PDF
+router.get("/:id/receipt/pdf", async (req, res) => {
+  const { id } = req.params;
 
+  try {
+    const pdfBuffer = await generateReceiptPdf(id);
+
+    // Get receipt ID for filename
+    const receipt = await buildReceiptData(id);
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="Aitbaar-Receipt-${receipt.receiptId}.pdf"`
+    );
+    res.send(pdfBuffer);
+  } catch (err) {
+    console.error("PDF receipt error:", err.message);
+    res.status(404).json({ success: false, error: "Receipt not found" });
+  }
+});
 // GET /api/payment/:id/receipt/json
+// Returns the receipt data as JSON (for frontend rendering)
 router.get("/:id/receipt/json", async (req, res) => {
   const { id } = req.params;
+
   try {
     const receipt = await buildReceiptData(id);
     const whatsappText = formatForWhatsApp(receipt);
     const html = generateReceiptHtml(receipt);
+
     res.json({ success: true, receipt, whatsappText, html });
   } catch (err) {
     console.error("Receipt JSON error:", err.message);

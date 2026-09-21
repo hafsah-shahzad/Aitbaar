@@ -36,6 +36,7 @@ export const setOrganizerStatus = (id, status) =>
   request(`/api/admin/organizers/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) });
 export const getAdminCommittees = () => request("/api/admin/committees");
 export const getAdminAnomalies = () => request("/api/admin/anomalies");
+export const getOrganizerMembers = (id) => request(`/api/admin/organizers/${id}/members`);
 export const getCommitteePayments = (id) => request(`/api/admin/committees/${id}/payments`);
 export const getCommitteeOverview = (id) => request(`/api/admin/committees/${id}/overview`);
 export const reviewAnomaly = (id, status) =>
