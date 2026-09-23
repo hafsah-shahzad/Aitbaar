@@ -106,6 +106,8 @@ export default function Dashboard() {
   const [deletingId, setDeletingId] = useState(null);
   const [verifyingId, setVerifyingId] = useState(null);
   const [showCommitteeDropdown, setShowCommitteeDropdown] = useState(false);
+  const [anomDate, setAnomDate] = useState("");
+  const [anomMember, setAnomMember] = useState("all");
 
   // Trust Distribution member detail + month filter
   const [selectedMember, setSelectedMember] = useState(null);
@@ -229,6 +231,22 @@ export default function Dashboard() {
   const kpis = dashData?.kpis;
   const members = dashData?.members || [];
   const anomalies = dashData?.anomalies || [];
+  
+  // ── Anomaly filters: by date + by member ──
+  const filteredAnomalies = anomalies.filter((a) => {
+    if (anomMember !== "all" && a.member_id !== anomMember) return false;
+    if (anomDate && String(a.created_at || "").slice(0, 10) !== anomDate) return false;
+    return true;
+  });
+  const anomalyMemberOptions = [];
+  const seenMemberIds = new Set();
+  anomalies.forEach((a) => {
+    if (a.member_id && a.members && !seenMemberIds.has(a.member_id)) {
+      seenMemberIds.add(a.member_id);
+      anomalyMemberOptions.push({ id: a.member_id, name: a.members.name || a.members.phone });
+    }
+  });
+  const anomFiltersActive = anomDate !== "" || anomMember !== "all";
   const paymentTrend = dashData?.paymentTrend || [];
   const trustDist = dashData?.trustDistribution;
   const nextPayout = dashData?.nextPayoutMember;
@@ -909,17 +927,53 @@ export default function Dashboard() {
               <div className="dash-section-header">
                 <div className="dash-section-title-row">
                   <AlertTriangle size={16} className="text-[#E65100]" />
-                  <h3 className="dash-section-title">All Anomalies ({anomalies.length})</h3>
+                    <h3 className="dash-section-title">
+                    {anomFiltersActive
+                      ? `Filtered Anomalies (${filteredAnomalies.length} of ${anomalies.length})`
+                      : `All Anomalies (${anomalies.length})`}
+                  </h3>
                 </div>
+                 {anomalies.length > 0 && (
+                  <div className="dash-anom-filters">
+                    <div className="dash-anom-filter">
+                      <Calendar size={13} />
+                      <input
+                        type="date"
+                        value={anomDate}
+                        onChange={(e) => setAnomDate(e.target.value)}
+                        aria-label="Filter anomalies by date"
+                      />
+                    </div>
+                    <select
+                      className="dash-anom-filter dash-anom-select"
+                      value={anomMember}
+                      onChange={(e) => setAnomMember(e.target.value)}
+                      aria-label="Filter anomalies by member"
+                    >
+                      <option value="all">All Members</option>
+                      {anomalyMemberOptions.map((m) => (
+                        <option key={m.id} value={m.id}>{m.name}</option>
+                      ))}
+                    </select>
+                    {anomFiltersActive && (
+                      <button
+                        className="dash-anom-clear"
+                        onClick={() => { setAnomDate(""); setAnomMember("all"); }}
+                      >
+                        <X size={12} /> Clear
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
-              {anomalies.length === 0 ? (
+                {filteredAnomalies.length === 0 ? (
                 <div className="dash-empty-state">
                   <ShieldCheck size={40} className="text-[#D1D5DB]" />
-                  <p>No anomalies detected</p>
+             <p>{anomFiltersActive ? "No anomalies match your filters" : "No anomalies detected"}</p>
                 </div>
               ) : (
                 <div className="dash-anomaly-list">
-                  {anomalies.map((a) => (
+             {filteredAnomalies.map((a) => (
                     <div key={a.id} className="dash-anomaly-item">
                       <div className="dash-anomaly-dot" />
                       <div className="dash-anomaly-body">

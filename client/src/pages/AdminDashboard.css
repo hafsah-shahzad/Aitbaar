@@ -107,6 +107,18 @@
   cursor: pointer; transition: all 0.18s ease;
 }
 .ad-logout-pill:hover { color: #FB7185; border-color: rgba(244, 63, 94, 0.4); }
+.ad-city-select {
+  background: #070B14; border: 1px solid #1E2C47; border-radius: 9px;
+  padding: 7px 10px; font-size: 12px; color: #CBD5E1; cursor: pointer; outline: none;
+  transition: border-color 0.18s ease; max-width: 140px;
+}
+.ad-city-select:hover, .ad-city-select:focus { border-color: #F59E0B; }
+.ad-city-select option { background: #0C1322; color: #E2E8F0; }
+.ad-city-pill {
+  display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 10.5px; font-weight: 600;
+  background: rgba(6, 182, 212, 0.12); color: #22D3EE;
+  font-family: "JetBrains Mono", monospace;
+}
 
 .ad-notif-pop {
   position: absolute; top: calc(100% + 8px); right: 0; width: 330px;
@@ -140,6 +152,7 @@
 /* ═══ KPI ═══ */
 .ad-kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
 .ad-kpi-row-secondary { margin-bottom: 18px; }
+/* (ghost placeholder cards removed — all 8 KPI slots show real metrics now) */
 .ad-kpi {
   background: #0C1322; border: 1px solid #1E2C47; border-radius: 14px; padding: 16px;
   transition: border-color 0.18s ease, transform 0.18s ease;
@@ -176,16 +189,26 @@
 .ad-empty-text { font-size: 12.5px; color: #64748B; text-align: center; padding: 26px 10px; margin: 0; }
 .ad-empty-pad { padding: 34px 10px; }
 
-/* ═══ TOP LIST ═══ */
-.ad-top-list { display: flex; flex-direction: column; max-height: 236px; overflow-y: auto; }
-.ad-top-item { display: flex; align-items: center; gap: 11px; padding: 9px 4px; border-bottom: 1px solid rgba(30, 44, 71, 0.6); }
-.ad-top-item:last-child { border-bottom: none; }
-.ad-top-info { flex: 1; min-width: 0; }
-.ad-top-info p { font-size: 12.5px; font-weight: 600; color: #E2E8F0; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ad-top-info span { font-size: 10.5px; color: #64748B; font-family: "JetBrains Mono", monospace; }
-.ad-top-value { font-size: 12.5px; font-weight: 700; color: #FBBF24; font-family: "JetBrains Mono", monospace; flex-shrink: 0; }
-
 /* ═══ CHART FOCUS (per-committee Payment Flow) ═══ */
+.ad-focus-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  background: linear-gradient(90deg, rgba(6, 182, 212, 0.1), rgba(6, 182, 212, 0.03));
+  border: 1px solid rgba(6, 182, 212, 0.4); border-radius: 14px;
+  padding: 14px 18px; margin-bottom: 16px; flex-wrap: wrap;
+}
+.ad-focus-banner-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.ad-focus-banner-name {
+  display: flex; align-items: center; font-size: 15px; font-weight: 700; color: #fff; margin: 0;
+}
+.ad-focus-banner-sub {
+  font-size: 11px; color: #7A8AA0; margin: 2px 0 0; font-family: "JetBrains Mono", monospace;
+}
+.ad-focus-banner-clear {
+  display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 9px;
+  border: 1px solid rgba(6, 182, 212, 0.4); background: none; color: #22D3EE;
+  font-size: 11.5px; font-weight: 600; cursor: pointer; transition: all 0.18s ease; flex-shrink: 0;
+}
+.ad-focus-banner-clear:hover { background: rgba(6, 182, 212, 0.12); border-color: #22D3EE; }
 .ad-focus-chip {
   display: inline-flex; align-items: center; gap: 8px; padding: 4px 6px 4px 10px;
   background: rgba(6, 182, 212, 0.08); border: 1px solid rgba(6, 182, 212, 0.35);
@@ -212,30 +235,27 @@
   font-size: 10.5px; color: #475569; text-align: center; margin: 8px 0 0;
   font-family: "JetBrains Mono", monospace;
 }
-/* ═══ CHART FOCUS (per-committee Payment Flow) ═══ */
-.ad-focus-banner {
-  display: flex; align-items: center; justify-content: space-between; gap: 14px;
-  background: linear-gradient(90deg, rgba(6, 182, 212, 0.1), rgba(6, 182, 212, 0.03));
-  border: 1px solid rgba(6, 182, 212, 0.4); border-radius: 14px;
-  padding: 14px 18px; margin-bottom: 16px; flex-wrap: wrap;
-}
-.ad-focus-banner-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.ad-focus-banner-name {
-  display: flex; align-items: center; font-size: 15px; font-weight: 700; color: #fff; margin: 0;
-}
-.ad-focus-banner-sub {
-  font-size: 11px; color: #7A8AA0; margin: 2px 0 0; font-family: "JetBrains Mono", monospace;
-}
-.ad-focus-banner-clear {
-  display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 9px;
-  border: 1px solid rgba(6, 182, 212, 0.4); background: none; color: #22D3EE;
-  font-size: 11.5px; font-weight: 600; cursor: pointer; transition: all 0.18s ease; flex-shrink: 0;
-}
-.ad-focus-banner-clear:hover { background: rgba(6, 182, 212, 0.12); border-color: #22D3EE; }
+
 /* ═══ TOP LIST ═══ */
 .ad-top-item.ad-clickable { cursor: pointer; transition: background 0.15s ease, border-radius 0.15s ease; }
 .ad-top-item.ad-clickable:hover { background: rgba(255, 255, 255, 0.04); border-radius: 8px; }
 .ad-top-item.ad-clickable.selected { background: rgba(6, 182, 212, 0.08); border-radius: 8px; box-shadow: inset 2px 0 0 #22D3EE; }
+.ad-top-list { display: flex; flex-direction: column; max-height: 236px; overflow-y: auto; }
+.ad-top-item { display: flex; align-items: center; gap: 11px; padding: 9px 4px; border-bottom: 1px solid rgba(30, 44, 71, 0.6); }
+.ad-top-item:last-child { border-bottom: none; }
+.ad-top-info { flex: 1; min-width: 0; }
+.ad-top-info p { font-size: 12.5px; font-weight: 600; color: #E2E8F0; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ad-top-info span { font-size: 10.5px; color: #CBD5E1; font-family: "JetBrains Mono", monospace; }
+.ad-top-value { font-size: 12.5px; font-weight: 700; color: #FBBF24; font-family: "JetBrains Mono", monospace; flex-shrink: 0; }
+/* Member roster header actions (back button when a committee is selected) */
+.ad-roster-head-actions { display: inline-flex; align-items: center; gap: 8px; }
+.ad-back-btn {
+  display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 9px;
+  border: 1px solid rgba(6, 182, 212, 0.4); background: none; color: #22D3EE;
+  font-size: 11.5px; font-weight: 600; cursor: pointer; transition: all 0.18s ease; flex-shrink: 0;
+}
+.ad-back-btn:hover { background: rgba(6, 182, 212, 0.12); border-color: #22D3EE; }
+
 /* ═══ TABLES ═══ */
 .ad-table-card { background: #0C1322; border: 1px solid #1E2C47; border-radius: 14px; overflow: hidden; }
 .ad-table-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 18px; border-bottom: 1px solid #1E2C47; flex-wrap: wrap; }
@@ -298,6 +318,19 @@
 .ad-health-pill.good { background: rgba(16, 185, 129, 0.12); color: #34D399; }
 .ad-health-pill.mid { background: rgba(245, 158, 11, 0.12); color: #FBBF24; }
 .ad-health-pill.bad { background: rgba(244, 63, 94, 0.12); color: #FB7185; }
+
+/* Duration pill (Committee Oversight) + organizer member stats strip */
+.ad-duration-pill {
+  display: inline-block; padding: 3px 10px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; font-family: "JetBrains Mono", monospace;
+  background: rgba(99, 102, 241, 0.12); color: #A5B4FC;
+}
+.ad-org-member-stats {
+  display: flex; flex-wrap: wrap; gap: 18px; padding: 12px 18px;
+  border-bottom: 1px solid #1E2C47; font-size: 11.5px; color: #CBD5E1;
+  font-family: "JetBrains Mono", monospace;
+}
+.ad-org-member-stats strong { color: #FBBF24; font-weight: 700; }
 .ad-progress-cell { display: flex; align-items: center; gap: 8px; }
 .ad-progress { width: 70px; height: 5px; background: #1E2C47; border-radius: 3px; overflow: hidden; }
 .ad-progress > div { height: 100%; background: #F59E0B; border-radius: 3px; }
@@ -323,8 +356,19 @@
 .ad-sev-card.warn { border-left-color: #F59E0B; }
 .ad-sev-card.low { border-left-color: #64748B; }
 .ad-sev-card.done { border-left-color: #10B981; }
+
+/* Severity cards double as Fraud Radar severity filters */
+button.ad-sev-card { text-align: left; cursor: pointer; transition: all 0.18s ease; font-family: inherit; }
+button.ad-sev-card:hover { border-color: #2E405F; transform: translateY(-1px); }
+button.ad-sev-card.selected {
+  border-color: #22D3EE;
+  box-shadow: 0 0 0 1px rgba(6, 182, 212, 0.35), inset 2px 0 0 #22D3EE;
+  background: rgba(6, 182, 212, 0.06);
+}
+button.ad-sev-card:focus-visible { outline: 2px solid #22D3EE; outline-offset: 2px; }
 .ad-sev-count { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; color: #fff; margin: 0; font-family: "JetBrains Mono", monospace; }
 .ad-sev-label { font-size: 10.5px; color: #64748B; text-transform: uppercase; letter-spacing: 0.07em; margin: 3px 0 0; font-family: "JetBrains Mono", monospace; }
+
 .ad-anomaly-row { display: flex; align-items: flex-start; gap: 14px; padding: 13px 18px; border-bottom: 1px solid rgba(30, 44, 71, 0.6); }
 .ad-anomaly-row:last-child { border-bottom: none; }
 .ad-anomaly-row:hover { background: rgba(255, 255, 255, 0.02); }
@@ -356,6 +400,26 @@
 .ad-job-name { font-size: 12.5px; font-weight: 600; color: #E2E8F0; margin: 0; }
 .ad-job-sub { font-size: 11px; color: #64748B; margin: 1px 0 0; font-family: "JetBrains Mono", monospace; }
 .ad-job-row .ad-badge { margin-left: auto; }
+
+/* Expandable per-committee job status (System Health) */
+.ad-job-block { border-bottom: 1px solid rgba(30, 44, 71, 0.6); }
+.ad-job-block:last-child { border-bottom: none; }
+button.ad-job-row { width: 100%; background: none; border: none; text-align: left; font-family: inherit; cursor: pointer; transition: background 0.15s ease; }
+button.ad-job-row:hover { background: rgba(255, 255, 255, 0.03); border-radius: 8px; }
+.ad-job-block .ad-job-row { border-bottom: none; }
+.ad-job-chevron { margin-left: 4px; color: #7A8AA0; font-size: 12px; transition: transform 0.18s ease; flex-shrink: 0; }
+.ad-job-chevron.up { transform: rotate(180deg); }
+.ad-job-committee-dropdown {
+  padding: 6px 8px 10px 30px; margin: 0 0 6px;
+  background: rgba(255, 255, 255, 0.02); border: 1px solid #1E2C47; border-radius: 10px;
+  max-height: 260px; overflow-y: auto;
+}
+.ad-job-committee-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 8px 6px; border-bottom: 1px solid rgba(30, 44, 71, 0.5);
+}
+.ad-job-committee-row:last-child { border-bottom: none; }
+.ad-job-committee-row .ad-badge { flex-shrink: 0; }
 
 /* ═══ RESPONSIVE ═══ */
 @media (max-width: 1180px) {

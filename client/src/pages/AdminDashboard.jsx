@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Building2, Users, Wallet, ShieldAlert, ShieldCheck,
   LogOut, Menu, X, Search, Bell, CheckCircle2, XCircle, Ban,
-  Activity, Database, Globe, RefreshCw, Lock, Loader2,
+  Activity, Database, Globe, RefreshCw, Lock, Loader2, ArrowLeft,
 } from "lucide-react";
 import {
   BarChart, Bar, PieChart, Pie, Cell,
@@ -11,7 +11,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import {
-  getPlatformStats, getAdminOrganizers, setOrganizerStatus,
+  getPlatformStats, getAdminOrganizers, getOrganizerMembers, setOrganizerStatus,
   getAdminCommittees, getCommitteeOverview, getAdminAnomalies, reviewAnomaly, getSystemHealth,
 } from "../api/adminApi";
 import "./AdminDashboard.css";
@@ -23,7 +23,7 @@ import "./AdminDashboard.css";
 
 const NAV_ITEMS = [
   { key: "overview", label: "Dashboard Overview", icon: LayoutDashboard },
-  { key: "organizers", label: "Organizer Registry", icon: Users },
+  { key: "organizers", label: "Organizer/Member Registry", icon: Users },
   { key: "committees", label: "Committee Oversight", icon: Building2 },
   { key: "anomalies", label: "Fraud Radar", icon: ShieldAlert },
   { key: "system", label: "System Health", icon: Database },
@@ -129,14 +129,31 @@ export default function AdminDashboard() {
   const [committees, setCommittees] = useState([]);
   const [anomalies, setAnomalies] = useState([]);
   const [system, setSystem] = useState(null);
+  const [cityFilter, setCityFilter] = useState("all");
+
+  // Organizer Members panel: click an organizer in the registry → this loads
+  // every member across that organizer's committees (live from DB).
+  const [selectedOrg, setSelectedOrg] = useState(null);
+  const [orgMembers, setOrgMembers] = useState(null);
+  const [orgMembersLoading, setOrgMembersLoading] = useState(false);
+  const [orgMembersError, setOrgMembersError] = useState("");
+
+  // Committee focus: null = platform-wide overview, otherwise the WHOLE
+  // Overview section (KPIs, charts, roster) renders this committee's data.
+  const [focusCommittee, setFocusCommittee] = useState(null);
+  const [focusData, setFocusData] = useState(null); // full committee-scoped overview payload
+  const [focusLoading, setFocusLoading] = useState(false);
+  const [focusError, setFocusError] = useState("");
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionBusy, setActionBusy] = useState(null);
-  const [focusCommittee, setFocusCommittee] = useState(null);
-  const [focusData, setFocusData] = useState(null); 
-  const [focusLoading, setFocusLoading] = useState(false);
-  const [focusError, setFocusError] = useState("");
+
+  // Fraud Radar severity filter: "all" | "high" | "medium" | "low"
+  const [sevFilter, setSevFilter] = useState("all");
+  // System Health: which job's committee-status dropdown is open
+  const [openJobDropdown, setOpenJobDropdown] = useState(null);
+
   const admin = useMemo(() => {
     try {
       return JSON.parse(localStorage.getItem("aitbaar_admin")) || null;
@@ -194,18 +211,46 @@ export default function AdminDashboard() {
     localStorage.removeItem("aitbaar_admin");
     navigate("/admin/login");
   }
-  // Click a committee anywhere → Payment Flow chart shows that committee's data
+
+  function handleCityFilter(e) {
+    setCityFilter(e.target.value);
+  }
+
+  // Click an organizer row in the registry → load its members below
+  async function handleSelectOrganizer(o) {
+    if (selectedOrg?.id === o.id) return; // already selected
+    setSelectedOrg({ id: o.id, name: o.name });
+    setOrgMembers(null);
+    setOrgMembersError("");
+    setOrgMembersLoading(true);
+    try {
+      const data = await getOrganizerMembers(o.id);
+      setOrgMembers(data);
+    } catch (e) {
+      setOrgMembersError(e.message || "Failed to load members");
+    } finally {
+      setOrgMembersLoading(false);
+    }
+  }
+
+  function clearSelectedOrganizer() {
+    setSelectedOrg(null);
+    setOrgMembers(null);
+    setOrgMembersError("");
+  }
+
+  // Click a committee anywhere → the entire Overview section shows its data
   async function handleFocusCommittee(c) {
     setActiveNav("overview");
     setFocusCommittee({ id: c.id, name: c.name, code: c.code });
-      setFocusData(null);
+    setFocusData(null);
     setFocusError("");
     setFocusLoading(true);
     try {
-    const data = await getCommitteeOverview(c.id);
+      const data = await getCommitteeOverview(c.id);
       setFocusData(data);
     } catch (e) {
-       setFocusError(e.message || "Failed to load committee overview");
+      setFocusError(e.message || "Failed to load committee overview");
     } finally {
       setFocusLoading(false);
     }
@@ -245,32 +290,50 @@ export default function AdminDashboard() {
   }
 
   /* ── Derived data ── */
+  const allCities = useMemo(() => {
+    const set = new Set();
+    committees.forEach((c) => { if (c.city) set.add(c.city); });
+    organizers.forEach((o) => { if (o.city) set.add(o.city); });
+    return [...set].sort();
+  }, [committees, organizers]);
+
   const filteredOrganizers = useMemo(() => {
     let list = organizers;
     if (orgFilter !== "all") list = list.filter((o) => (o.status || "active") === orgFilter);
+    if (cityFilter !== "all") list = list.filter((o) => o.city === cityFilter);
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(
         (o) => o.name?.toLowerCase().includes(q) || o.email?.toLowerCase().includes(q) ||
-               o.phone?.includes(q)
+               o.phone?.includes(q) || o.city?.toLowerCase().includes(q)
       );
     }
     return list;
-  }, [organizers, orgFilter, search]);
+  }, [organizers, orgFilter, cityFilter, search]);
 
   const filteredCommittees = useMemo(() => {
-    if (!search.trim()) return committees;
-    const q = search.toLowerCase();
-    return committees.filter(
-      (c) => c.name?.toLowerCase().includes(q) || c.code?.toLowerCase().includes(q) ||
-             c.organizer_name?.toLowerCase().includes(q)
-    );
-  }, [committees, search]);
+    let list = committees;
+    if (cityFilter !== "all") list = list.filter((c) => c.city === cityFilter);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(
+        (c) => c.name?.toLowerCase().includes(q) || c.code?.toLowerCase().includes(q) ||
+               c.organizer_name?.toLowerCase().includes(q) || c.city?.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [committees, cityFilter, search]);
 
   const openAnomalies = useMemo(
     () => anomalies.filter((a) => (a.status || "open") === "open"),
     [anomalies]
   );
+
+  // Fraud Radar list: severity filter applied (no filter → all anomalies)
+  const filteredAnomalies = useMemo(() => {
+    if (sevFilter === "all") return anomalies;
+    return anomalies.filter((a) => a.severity === sevFilter);
+  }, [anomalies, sevFilter]);
 
   const growthTrendPct = useMemo(() => {
     if (!stats?.growth) return null;
@@ -286,13 +349,12 @@ export default function AdminDashboard() {
 
   const scopedTrustDist = useMemo(() => {
     const t = v?.stats?.trustDistribution || stats?.trustDistribution || { high: 0, medium: 0, low: 0 };
-
     return [
       { name: "High Trust (80+)", value: t.high, color: "#10B981" },
       { name: "Watchlist (50–79)", value: t.medium, color: "#F59E0B" },
       { name: "Quarantine (<50)", value: t.low, color: "#F43F5E" },
     ];
- }, [v, stats]);
+  }, [v, stats]);
 
   /* ── States ── */
   if (!admin || loading) {
@@ -389,9 +451,18 @@ export default function AdminDashboard() {
                 onChange={(e) => setSearch(e.target.value)}
               />
               {search && (
-                <button className="ad-search-clear" onClick={() => setSearch("")}><X size={12} /></button>
+                <button className="ad-search-clear" onClick={() => setSearch("") }><X size={12} /></button>
               )}
             </div>
+            <select
+              className="ad-city-select"
+              value={cityFilter}
+              onChange={handleCityFilter}
+              title="Filter by city"
+            >
+              <option value="all">All Cities</option>
+              {allCities.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
             <button className="ad-topbar-icon" onClick={() => loadAll()} title="Refresh data">
               <RefreshCw size={15} />
             </button>
@@ -433,7 +504,7 @@ export default function AdminDashboard() {
         {/* ═══ OVERVIEW ═══ */}
         {activeNav === "overview" && stats && (
           <div className="ad-content">
-             {focusCommittee && (
+            {focusCommittee && (
               <div className="ad-focus-banner">
                 <div className="ad-focus-banner-left">
                   <div className="ad-avatar" style={{ background: getAvatarColor(focusCommittee.name) }}>
@@ -456,8 +527,9 @@ export default function AdminDashboard() {
                 </button>
               </div>
             )}
+            {/* KPIs: committee-scoped when focused, platform-wide otherwise */}
             <div className="ad-kpi-row">
-                 {v ? (
+              {v ? (
                 <>
                   <KpiCard icon={Users} label="Members" value={v.stats.totalMembers}
                     sub={`of ${v.committee.total_members ?? "—"} seats`} tone={{ bg: "rgba(99,102,241,.12)", fg: "#818CF8" }} />
@@ -484,9 +556,9 @@ export default function AdminDashboard() {
             </div>
 
             <div className="ad-kpi-row ad-kpi-row-secondary">
-           <KpiCard icon={ShieldCheck} label="Pending Verifications" value={v ? v.stats.pendingVerifications : stats.pendingVerifications}
+              <KpiCard icon={ShieldCheck} label="Pending Verifications" value={v ? v.stats.pendingVerifications : stats.pendingVerifications}
                 sub="this month" tone={{ bg: "rgba(6,182,212,.12)", fg: "#22D3EE" }} />
-                          <KpiCard icon={ShieldAlert} label="Open Anomalies" value={v ? v.stats.openAnomalies : stats.openAnomalies}
+              <KpiCard icon={ShieldAlert} label="Open Anomalies" value={v ? v.stats.openAnomalies : stats.openAnomalies}
                 sub={`${v ? v.stats.criticalAnomalies : stats.criticalAnomalies} critical`} tone={{ bg: "rgba(244,63,94,.12)", fg: "#FB7185" }} />
               <KpiCard icon={CheckCircle2} label="Confirmed Payments" value={(v ? v.stats.confirmedPayments : stats.confirmedPayments ?? 0).toLocaleString()}
                 sub={`${v ? v.stats.rejectedPayments : stats.rejectedPayments ?? 0} rejected all-time`} tone={{ bg: "rgba(16,185,129,.12)", fg: "#34D399" }} />
@@ -503,7 +575,7 @@ export default function AdminDashboard() {
               <div className="ad-chart-card">
                 <div className="ad-chart-head">
                   <h3>Member Growth</h3>
-                 <span className="ad-chart-chip">Last 6 months{v ? ` · ${v.committee.name}` : ""}</span>
+                  <span className="ad-chart-chip">Last 6 months{v ? ` · ${v.committee.name}` : ""}</span>
                 </div>
                 {(v ? v.stats.growth : stats.growth).some((g) => g.members > 0 || (!v && g.committees > 0)) ? (
                   <ResponsiveContainer width="100%" height={210}>
@@ -519,11 +591,11 @@ export default function AdminDashboard() {
                       <YAxis tick={{ fontSize: 11, fill: "#64748B" }} axisLine={false} tickLine={false} allowDecimals={false} />
                       <Tooltip contentStyle={adTooltipStyle} />
                       <Area type="monotone" dataKey="members" stroke="#F59E0B" strokeWidth={2.5} fill="url(#adGradGold)" name="New members" />
-                        {!v && <Area type="monotone" dataKey="committees" stroke="#10B981" strokeWidth={2} fill="none" name="New committees" />}
+                      {!v && <Area type="monotone" dataKey="committees" stroke="#10B981" strokeWidth={2} fill="none" name="New committees" />}
                     </AreaChart>
                   </ResponsiveContainer>
                 ) : (
-                  <p className="ad-empty-text">Not enough data yet growth chart fills as members join.</p>
+                  <p className="ad-empty-text">Not enough data yet — growth chart fills as members join.</p>
                 )}
               </div>
 
@@ -536,7 +608,7 @@ export default function AdminDashboard() {
                       <span className="ad-focus-name" title={focusCommittee.code}>
                         {focusCommittee.name}
                       </span>
-                       {focusData?.stats && (
+                      {focusData?.stats && (
                         <span className="ad-focus-total">{fmtRs(focusData.stats.collected)} collected</span>
                       )}
                       <button className="ad-focus-clear" onClick={clearFocusCommittee} title="Back to platform-wide">
@@ -554,10 +626,10 @@ export default function AdminDashboard() {
                 {focusError ? (
                   <p className="ad-empty-text">⚠ {focusError}</p>
                 ) : focusLoading ? (
-                <div className="ad-chart-loading"><Loader2 size={20} className="ad-spin" /> Loading committee data…</div>
+                  <div className="ad-chart-loading"><Loader2 size={20} className="ad-spin" /> Loading committee data…</div>
                 ) : v ? (
                   <ResponsiveContainer width="100%" height={210}>
-                   <BarChart data={v.stats.paymentTrend}>
+                    <BarChart data={v.stats.paymentTrend}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#1E2C47" vertical={false} />
                       <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#64748B" }} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fontSize: 11, fill: "#64748B" }} axisLine={false} tickLine={false} allowDecimals={false} />
@@ -582,7 +654,7 @@ export default function AdminDashboard() {
                 ) : (
                   <p className="ad-empty-text">No payment records yet.</p>
                 )}
-                     {focusCommittee == null && (
+                {focusCommittee == null && (
                   <p className="ad-chart-hint">Tip: click any committee in Oversight or Top Committees to focus the whole overview on it.</p>
                 )}
               </div>
@@ -590,19 +662,19 @@ export default function AdminDashboard() {
 
             <div className="ad-bottom-row">
               <div className="ad-chart-card">
-              <div className="ad-chart-head"><h3>Member Trust Distribution{v ? ` · ${v.committee.name}` : ""}</h3></div>
+                <div className="ad-chart-head"><h3>Member Trust Distribution{v ? ` · ${v.committee.name}` : ""}</h3></div>
                 {scopedTrustDist.some((d) => d.value > 0) ? (
                   <>
                     <ResponsiveContainer width="100%" height={185}>
-                      <PieChart>              
-                          <Pie data={scopedTrustDist} dataKey="value" nameKey="name" innerRadius={46} outerRadius={70} paddingAngle={3} stroke="none">
+                      <PieChart>
+                        <Pie data={scopedTrustDist} dataKey="value" nameKey="name" innerRadius={46} outerRadius={70} paddingAngle={3} stroke="none">
                           {scopedTrustDist.map((e, i) => <Cell key={i} fill={e.color} />)}
                         </Pie>
                         <Tooltip contentStyle={adTooltipStyle} />
                       </PieChart>
                     </ResponsiveContainer>
                     <div className="ad-legend ad-legend-center">
-                     {scopedTrustDist.map((d) => (
+                      {scopedTrustDist.map((d) => (
                         <span key={d.name}><i style={{ background: d.color }} />{d.name} · {d.value.toLocaleString()}</span>
                       ))}
                     </div>
@@ -614,14 +686,23 @@ export default function AdminDashboard() {
 
               <div className="ad-chart-card">
                 <div className="ad-chart-head">
-                      <h3>{v ? `Member Roster (${v.members.length})` : "Top Committees by Volume"}</h3>
+                  <h3>{v ? `${v.committee.name} (${v.members.length} Members)` : "Top Committees by Volume"}</h3>
                   {v ? (
-                    <span className="ad-chart-chip">Paid amounts · trust-sorted</span>
+              <div className="ad-roster-head-actions">
+                      <span className="ad-chart-chip">Paid amounts · trust-sorted</span>
+                      <button
+                        className="ad-back-btn"
+                        onClick={clearFocusCommittee}
+                        title="Back to all committees"
+                      >
+                        <ArrowLeft size={13} /> Back
+                      </button>
+                    </div>
                   ) : (
                     <Activity size={14} className="ad-muted" />
                   )}
                 </div>
-                     {v ? (
+                {v ? (
                   v.members.length === 0 ? (
                     <p className="ad-empty-text">No members joined yet.</p>
                   ) : (
@@ -648,7 +729,7 @@ export default function AdminDashboard() {
                 ) : (
                   <div className="ad-top-list">
                     {[...committees].sort((a, b) => (b.collected || 0) - (a.collected || 0)).slice(0, 6).map((c) => (
-                     <div
+                      <div
                         key={c.id}
                         className={`ad-top-item ad-clickable ${focusCommittee?.id === c.id ? "selected" : ""}`}
                         onClick={() => handleFocusCommittee(c)}
@@ -676,7 +757,7 @@ export default function AdminDashboard() {
           <div className="ad-content">
             <div className="ad-table-card">
               <div className="ad-table-head">
-                <h3>Organizer Registry ({filteredOrganizers.length})</h3>
+                <h3>Organizer/Member Registry ({filteredOrganizers.length})</h3>
                 <div className="ad-filter-group">
                   {["all", "active", "suspended"].map((f) => (
                     <button
@@ -696,13 +777,18 @@ export default function AdminDashboard() {
                   <table className="ad-table">
                     <thead>
                       <tr>
-                        <th>Organizer</th><th>Committees</th><th>Members</th>
+                        <th>Organizer</th><th>City</th><th>Committees</th><th>Members</th>
                         <th>Volume</th><th>Avg Trust</th><th>Status</th><th>Joined</th><th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredOrganizers.map((o) => (
-                        <tr key={o.id} className={o.status === "suspended" ? "ad-row-flagged" : ""}>
+                        <tr
+                          key={o.id}
+                          className={`ad-row-clickable ${o.status === "suspended" ? "ad-row-flagged" : ""} ${selectedOrg?.id === o.id ? "ad-row-selected" : ""}`}
+                          onClick={() => handleSelectOrganizer(o)}
+                          title={`Show all members of ${o.name}`}
+                        >
                           <td>
                             <div className="ad-cell-member">
                               <div className="ad-avatar" style={{ background: getAvatarColor(o.name) }}>
@@ -714,6 +800,7 @@ export default function AdminDashboard() {
                               </div>
                             </div>
                           </td>
+                          <td className="ad-cell-dim">{o.city || "—"}</td>
                           <td className="ad-cell-strong">{o.committee_count} / 3</td>
                           <td>{o.member_count}</td>
                           <td className="ad-cell-strong">{fmtRs(o.volume)}</td>
@@ -739,6 +826,82 @@ export default function AdminDashboard() {
                 </div>
               )}
             </div>
+
+            {/* ═══ Members of the selected organizer (live from DB) ═══ */}
+            <div className="ad-table-card">
+              <div className="ad-table-head">
+                <h3>
+                  {selectedOrg
+                    ? `${selectedOrg.name} — Members (${orgMembers?.members?.length ?? "…"})`
+                    : "Organizer Members"}
+                </h3>
+                {selectedOrg && (
+                  <button className="ad-focus-banner-clear" onClick={clearSelectedOrganizer}>
+                    <X size={13} /> Clear selection
+                  </button>
+                )}
+              </div>
+
+              {!selectedOrg ? (
+                <p className="ad-empty-text ad-empty-pad">
+                  Select an organizer above to see all of their members here.
+                </p>
+              ) : orgMembersLoading ? (
+                <div className="ad-chart-loading"><Loader2 size={20} className="ad-spin" /> Loading members…</div>
+              ) : orgMembersError ? (
+                <p className="ad-empty-text ad-empty-pad">⚠ {orgMembersError}</p>
+              ) : orgMembers && orgMembers.members.length === 0 ? (
+                <p className="ad-empty-text ad-empty-pad">
+                  No members yet — this organizer has no members in any committee.
+                </p>
+              ) : orgMembers ? (
+                <>
+                  <div className="ad-org-member-stats">
+                    <span><strong>{orgMembers.stats.committeeCount}</strong> committees</span>
+                    <span><strong>{orgMembers.stats.memberCount}</strong> members</span>
+                    <span>avg trust <strong>{orgMembers.stats.avgTrust ?? "—"}</strong></span>
+                    <span>total paid <strong>{fmtRs(orgMembers.stats.totalPaid)}</strong></span>
+                  </div>
+                  <div className="ad-table-wrap">
+                    <table className="ad-table">
+                      <thead>
+                        <tr>
+                          <th>Member</th><th>Committee</th><th>Trust</th><th>Paid</th><th>Joined</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {orgMembers.members.map((m) => (
+                          <tr key={m.id}>
+                            <td>
+                              <div className="ad-cell-member">
+                                <div className="ad-avatar ad-avatar-sm" style={{ background: getAvatarColor(m.name || m.phone || "?") }}>
+                                  {getInitials(m.name || m.phone || "?")}
+                                </div>
+                                <div>
+                                  <p className="ad-cell-name">{m.name || "Unnamed member"}</p>
+                                  <p className="ad-cell-sub">{m.phone || "—"}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td>
+                              <p className="ad-cell-name">{m.committee_name}</p>
+                              <p className="ad-cell-sub">{m.committee_code}</p>
+                            </td>
+                            <td>
+                              <span className={`ad-trust-pill ${(m.trust ?? 100) >= 80 ? "good" : (m.trust ?? 100) >= 50 ? "mid" : "bad"}`}>
+                                {m.trust ?? "—"}
+                              </span>
+                            </td>
+                            <td className="ad-cell-strong">{fmtRs(m.paid_amount)} <span className="ad-cell-dim">· {m.paid_count} paid</span></td>
+                            <td className="ad-cell-dim">{timeAgo(m.joined_at)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              ) : null}
+            </div>
           </div>
         )}
 
@@ -748,7 +911,7 @@ export default function AdminDashboard() {
             <div className="ad-table-card">
               <div className="ad-table-head">
                 <h3>Committee Oversight ({filteredCommittees.length})</h3>
-                 <span className="ad-chart-chip">Click a row → its Payment Flow chart on Executive Telemetry</span>
+                <span className="ad-chart-chip">Click a row → its Payment Flow chart on Executive Telemetry</span>
               </div>
               {filteredCommittees.length === 0 ? (
                 <p className="ad-empty-text ad-empty-pad">No committees match.</p>
@@ -757,8 +920,8 @@ export default function AdminDashboard() {
                   <table className="ad-table">
                     <thead>
                       <tr>
-                        <th>Committee</th><th>Organizer</th><th>Members</th><th>Monthly</th>
-                        <th>Progress</th><th>Collected</th><th>Health</th><th>Status</th>
+                        <th>Committee</th><th>City</th><th>Organizer</th><th>Members</th><th>Monthly</th>
+                        <th>Progress</th><th>Collected</th><th>Duration</th><th>Status</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -766,9 +929,9 @@ export default function AdminDashboard() {
                         const progress = c.duration_months
                           ? Math.round(((c.months_elapsed || 0) / c.duration_months) * 100)
                           : 0;
-                             const isFocused = focusCommittee?.id === c.id;
+                        const isFocused = focusCommittee?.id === c.id;
                         return (
-                        <tr
+                          <tr
                             key={c.id}
                             className={`ad-row-clickable ${isFocused ? "ad-row-selected" : ""}`}
                             onClick={() => handleFocusCommittee(c)}
@@ -777,6 +940,9 @@ export default function AdminDashboard() {
                             <td>
                               <p className="ad-cell-name">{c.name}</p>
                               <p className="ad-cell-sub">{c.code}</p>
+                            </td>
+                            <td>
+                              {c.city ? <span className="ad-city-pill">{c.city}</span> : <span className="ad-cell-dim">—</span>}
                             </td>
                             <td className="ad-cell-dim">{c.organizer_name}</td>
                             <td>{c.member_count} / {c.total_members || "—"}</td>
@@ -789,9 +955,7 @@ export default function AdminDashboard() {
                             </td>
                             <td className="ad-cell-strong">{fmtRs(c.collected)}</td>
                             <td>
-                              <span className={`ad-health-pill ${(c.health || 0) >= 75 ? "good" : (c.health || 0) >= 50 ? "mid" : "bad"}`}>
-                                {c.health ?? "—"}
-                              </span>
+                              <span className="ad-duration-pill">{c.duration_months ? `${c.duration_months} mo` : "—"}</span>
                             </td>
                             <td><ComHealthBadge health={c.health || 0} /></td>
                           </tr>
@@ -809,34 +973,34 @@ export default function AdminDashboard() {
         {activeNav === "anomalies" && (
           <div className="ad-content">
             <div className="ad-sev-summary">
-              <div className="ad-sev-card crit">
+              <button className={`ad-sev-card crit ad-sev-clickable ${sevFilter === "high" ? "selected" : ""}`} onClick={() => setSevFilter(sevFilter === "high" ? "all" : "high")}>
                 <p className="ad-sev-count">{openAnomalies.filter((a) => a.severity === "high").length}</p>
                 <p className="ad-sev-label">Critical Open</p>
-              </div>
-              <div className="ad-sev-card warn">
+              </button>
+              <button className={`ad-sev-card warn ad-sev-clickable ${sevFilter === "medium" ? "selected" : ""}`} onClick={() => setSevFilter(sevFilter === "medium" ? "all" : "medium")}>
                 <p className="ad-sev-count">{openAnomalies.filter((a) => a.severity === "medium").length}</p>
                 <p className="ad-sev-label">Medium Open</p>
-              </div>
-              <div className="ad-sev-card low">
+              </button>
+              <button className={`ad-sev-card low ad-sev-clickable ${sevFilter === "low" ? "selected" : ""}`} onClick={() => setSevFilter(sevFilter === "low" ? "all" : "low")}>
                 <p className="ad-sev-count">{openAnomalies.filter((a) => a.severity === "low").length}</p>
                 <p className="ad-sev-label">Low Open</p>
-              </div>
-              <div className="ad-sev-card done">
+              </button>
+              <button className={`ad-sev-card done ad-sev-clickable ${sevFilter === "all" ? "selected" : ""}`} onClick={() => setSevFilter("all")} title="Show all anomalies">
                 <p className="ad-sev-count">{anomalies.filter((a) => (a.status || "open") !== "open").length}</p>
                 <p className="ad-sev-label">Reviewed Total</p>
-              </div>
+              </button>
             </div>
 
             <div className="ad-table-card">
               <div className="ad-table-head">
-                <h3>All Anomalies ({anomalies.length})</h3>
+                <h3>All Anomalies ({filteredAnomalies.length})</h3>
                 <span className="ad-chart-chip">Platform-wide feed · newest first</span>
               </div>
-              {anomalies.length === 0 ? (
+              {filteredAnomalies.length === 0 ? (
                 <p className="ad-empty-text ad-empty-pad">No anomalies recorded.</p>
               ) : (
                 <div className="ad-anomaly-list">
-                  {anomalies.map((a) => {
+                  {filteredAnomalies.map((a) => {
                     const isOpen = (a.status || "open") === "open";
                     const busy = actionBusy === `anm-${a.id}`;
                     return (
@@ -894,16 +1058,45 @@ export default function AdminDashboard() {
               <div className="ad-chart-card">
                 <div className="ad-chart-head"><h3>Platform Jobs</h3></div>
                 <div className="ad-jobs-list">
-                  {(system?.jobs || []).map((j) => (
-                    <div key={j.name} className="ad-job-row">
-                      <CheckCircle2 size={14} className="ad-job-ok" />
-                      <div>
-                        <p className="ad-job-name">{j.name}</p>
-                        <p className="ad-job-sub">{j.schedule}</p>
+                  {(system?.jobs || []).map((j) => {
+                    const committeesList = Object.values(j.committeeStatus || {});
+                    const isOpen = openJobDropdown === j.key;
+                    return (
+                      <div key={j.key} className="ad-job-block">
+                        <button
+                          className={`ad-job-row ad-job-clickable ${isOpen ? "open" : ""}`}
+                          onClick={() => setOpenJobDropdown(isOpen ? null : j.key)}
+                          title={`Show per-committee status for ${j.name}`}
+                        >
+                          <CheckCircle2 size={14} className="ad-job-ok" />
+                          <div>
+                            <p className="ad-job-name">{j.name}</p>
+                            <p className="ad-job-sub">{j.schedule}</p>
+                          </div>
+                          <span className="ad-badge ad-badge-green">Active</span>
+                          <span className={`ad-job-chevron ${isOpen ? "up" : ""}`} aria-hidden>▾</span>
+                        </button>
+                        {isOpen && (
+                          <div className="ad-job-committee-dropdown">
+                            {committeesList.length === 0 && (
+                              <p className="ad-empty-text">No committees yet.</p>
+                            )}
+                            {committeesList.map((c) => (
+                              <div key={c.code} className="ad-job-committee-row">
+                                <div className="ad-top-info">
+                                  <p>{c.name}</p>
+                                  <span>{c.code}</span>
+                                </div>
+                                <span className={`ad-badge ${c.status === "Success" ? "ad-badge-green" : "ad-badge-gray"}`}>
+                                  {c.status}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      <span className="ad-badge ad-badge-green">Active</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {!system && <p className="ad-empty-text">System data unavailable.</p>}
                 </div>
               </div>

@@ -281,3 +281,15 @@
 @media (max-width: 480px) {
   .dash-stats-row { grid-template-columns: 1fr; }
 }
+/* ══ Anomaly filters (date + member) ══ */
+.dash-anom-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.dash-anom-filter { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 8px; background: var(--dash-bg); border: 1px solid var(--dash-border); color: var(--dash-text-muted); font-size: 12px; transition: all var(--dash-transition); }
+.dash-anom-filter:focus-within { border-color: var(--dash-navy); }
+.dash-anom-filter input[type="date"] { border: none; background: transparent; font-size: 12px; color: var(--dash-text); outline: none; font-family: inherit; cursor: pointer; }
+.dash-anom-select { cursor: pointer; font-family: inherit; outline: none; }
+.dash-anom-clear { display: flex; align-items: center; gap: 4px; padding: 6px 10px; border-radius: 8px; border: 1px solid #FCEBEB; background: #FDF2F2; color: #C62828; font-size: 12px; font-weight: 500; cursor: pointer; transition: all var(--dash-transition); }
+.dash-anom-clear:hover { background: #FCEBEB; }
+@media (max-width: 640px) {
+  .dash-anom-filters { width: 100%; margin-top: 8px; }
+  .dash-anom-filter input[type="date"] { width: 100%; }
+}
