@@ -539,7 +539,7 @@ router.post("/", async function(req, res) {
         return res.sendStatus(200);
       }
 
-      var responseText = await generateResponse(transcript, memberships[0]);
+     var responseText = await generateResponse(transcript, memberships[0], fromNumber, sessLang);
       await saveMessage({ memberId: memberships[0].id, phone: fromNumber, transcript: transcript, response: responseText });
       await reply(fromNumber, responseText, isVoiceMessage);
       return res.sendStatus(200);
