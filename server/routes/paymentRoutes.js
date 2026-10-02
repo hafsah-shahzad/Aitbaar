@@ -88,13 +88,13 @@ router.patch("/:id/verify", async (req, res) => {
               );
 
               // Also send a short text confirmation after the image
-              await sendWhatsAppMessage(
-                   memberPhone,
-                `✅ Payment Confirmed for ${receiptSnapshot.month}\n
-                 Committee: ${receiptSnapshot.committeeName}\n
-                  Amount: Rs ${receiptSnapshot.monthlyAmount.toLocaleString()}\n
-                   Trust Score: ${receiptSnapshot.trustScore}/100\n Receipt ID: ${receiptSnapshot.receiptId}`
-              );
+              // await sendWhatsAppMessage(
+              //      memberPhone,
+              //   `✅ Payment Confirmed for ${receiptSnapshot.month}\n
+              //    Committee: ${receiptSnapshot.committeeName}\n
+              //     Amount: Rs ${receiptSnapshot.monthlyAmount.toLocaleString()}\n
+              //      Trust Score: ${receiptSnapshot.trustScore}/100\n Receipt ID: ${receiptSnapshot.receiptId}`
+              // );
 
               // Clean up the temp image file after sending
               try {
