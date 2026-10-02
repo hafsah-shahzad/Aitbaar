@@ -8,11 +8,13 @@ function detectLanguage(text) {
   if (!value) {
     return "roman_urdu";
   }
-
-  // --------------------------------------------------
   // 1. Proper Urdu script
-  // --------------------------------------------------
   if (/[\u0600-\u06FF]/.test(value)) {
+    return "urdu";
+  }
+
+  // 1b. Devanagari (Hindi) — isko Urdu maano
+  if (/[\u0900-\u097F]/.test(value)) {
     return "urdu";
   }
 
@@ -47,7 +49,7 @@ function detectLanguage(text) {
     "rahi", "paisa", "paise", "rakam", "maheena", "maheene", "mahina",
     "mahine", "qawaid", "uska", "uski", "yeh", "woh", "is", "committee",
     "kameti", "payment", "payout", "trust", "score", "shukriya", "mubarak",
-    "please", "help"
+    "please", "help", "trust", "score", "paisa", "rakam", "haan", "nahi", "theek", "acha"
   ]);
 
   // --------------------------------------------------
@@ -133,16 +135,17 @@ function getMessage(key, lang, vars) {
 // --------------------------------------------------
 
 const MESSAGES = {
-  welcome: {
-    urdu: "السلام علیکم! میں اعتبار ہوں۔ آپ کمیٹی میں رجسٹر ہونے کے لیے اپنا کمیٹی کوڈ بتائیں۔",
-    roman_urdu: "Assalam o Alaikum! Main Aitbaar hoon. Committee mein registration karwane ke liye apna committee code bataiye.",
-    english: "Assalam o Alaikum! I'm Aitbaar, your agent. To register in a committee, please share your committee code."
+welcome: {
+    urdu: "السلام علیکم! میں اعتبار ہوں کمیٹی میں شامل ہونے کے لیے اپنا کوڈ بھیجیں۔",
+    roman_urdu: "Assalam o Alaikum! Main Aitbaar hoon Committee mein register hone ke liye apna committee code bhejein.",
+    english: "Assalam o Alaikum! I'm Aitbaar To join a committee, please share your committee code."
   },
 
+
   invalidCode: {
-    urdu: "یہ کمیٹی کوڈ صحیح نہیں ہے۔ براہِ کرم اپنے آرگنائزر سے دوبارہ تصدیق کر لیں۔",
-    roman_urdu: "Yeh committee code sahi nahi hai. Apne organizer se dobara confirm kar lein.",
-    english: "This committee code is not valid. Please confirm with your organizer."
+    urdu: "Hmm، یہ کوڈ صحیح نہیں لگ رہا۔ اپنے آرگنائزر سے دوبارہ تصدیق کر لیں؟",
+    roman_urdu: "Hmm, yeh code sahi nahi lag raha. Organizer se dobara confirm kar lein?",
+    english: "Hmm, that code doesn't look right. Could you confirm with your organizer?"
   },
 
   joinAnother: {
@@ -152,9 +155,9 @@ const MESSAGES = {
   },
 
   alreadyMember: {
-    urdu: "آپ پہلے سے اس کمیٹی کے ممبر ہیں!",
-    roman_urdu: "Aap pehle se is committee ke member hain!",
-    english: "You are already a member of this committee!"
+    urdu: "آپ پہلے سے اس کمیٹی کے ممبر ہیں",
+    roman_urdu: "Aap pehle se is committee ke member hain",
+    english: "You're already a member of this committee "
   },
 
   whichCommittee: {
@@ -216,13 +219,13 @@ const MESSAGES = {
   committeeFull: {
     urdu: "یہ کمیٹی بھر چکی ہے۔ آرگنائزر سے رابطہ کریں۔",
     roman_urdu: "Yeh committee bhar chuki hai. Organizer se rabta karein.",
-    english: "This committee is full. Please contact the organizer."
+    english: "This committee is already full. Please contact the organizer."
   },
 
   sorryNotUnderstood: {
-    urdu: "معاف کیجیے، میں سمجھ نہیں پایا۔ براہِ کرم دوبارہ کوشش کریں۔",
-    roman_urdu: "Maaf kijiye, main samajh nahi paya. Dobara koshish karein.",
-    english: "Sorry, I did not understand. Please try again."
+    urdu: "Sorry، یہ مجھے سمجھ نہیں آیا۔ تھوڑا صاف بتا دیں؟ ",
+    roman_urdu: "Sorry, yeh mujhe samajh nahi aaya. Thora saaf bata dein? ",
+    english: "Sorry, I didn't quite get that. Could you say it again a bit more clearly?"
   },
 
   askPriorityReason: {
